@@ -1,0 +1,27 @@
+import {SystemRole} from "../enums.js";
+export class User {
+
+    id: number;
+    email: string;
+    phone: string;
+    name: string;
+    passwordHash: string;
+    systemRole: SystemRole;
+    createdAt: Date;
+    updatedAt: Date;
+    deletedAt: Date | undefined; // optional property to indicate if the user is deleted
+
+    // momkn a7ot partial user law msh ha7ot kol el properties
+
+    constructor(data: Partial<User>) {
+    this.id = data.id!
+    this.email = data.email!
+    this.phone = data.phone!
+    this.name = data.name!
+    this.passwordHash = data.passwordHash!
+    this.systemRole = data.systemRole!
+    this.createdAt = data.createdAt ?? new Date()
+    this.updatedAt = data.updatedAt ?? new Date()
+    this.deletedAt = data.deletedAt 
+}
+}
