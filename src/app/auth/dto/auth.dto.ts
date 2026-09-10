@@ -1,4 +1,4 @@
-import {IsEmail, IsEnum, IsNotEmpty, IsString, IsStrongPassword, Max, MaxLength, Min, MinLength} from "class-validator";
+import {IsEmail, IsEnum, IsNotEmpty, IsString, IsStrongPassword, Length, Max, MaxLength, Min, MinLength} from "class-validator";
 import { SystemRole } from "../../user/enums.js";
 export class RegisterDTO {
     @IsEmail()
@@ -20,4 +20,37 @@ export class RegisterDTO {
 
     @IsEnum(SystemRole)
     role!: SystemRole;
+}
+
+export class LoginDTO {
+    @IsEmail()
+    email!: string;
+   
+    @IsString()
+    @IsNotEmpty()
+    password!: string;
+}
+
+export class ForgetPassDTO {
+    @IsEmail()
+    email!: string;
+}
+
+export class ResetPasswordDTO {
+    @IsEmail()
+    email!: string;
+
+    @IsString()
+    @Length(6)
+    otp!: string;
+
+    @IsStrongPassword({
+        minLength: 8,
+        minLowercase: 1,
+        minUppercase: 1,
+        minNumbers: 1,
+        minSymbols: 1
+    })
+    newPassword!: string;
+
 }

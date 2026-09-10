@@ -17,13 +17,17 @@ const envSchema = z.object({
   ACCESS_SECRET: z.string(),
   REFRESH_SECRET: z.string(),
   ACCESS_EXPIRES_IN: z.string(),
-  REFRESH_EXPIRES_IN: z.string()
+  REFRESH_EXPIRES_IN: z.string(),
+  NODE_ENV: z.string()
 });
 
 const parsed = envSchema.parse(process.env);
 
 export const env = {
-    port: Number(parsed.PORT),
+     port: Number(parsed.PORT),
+    app: {
+        nodeEnv: parsed.NODE_ENV,
+    },
     db: {
         host: parsed.DB_HOST,
         port: Number(parsed.DB_PORT),
@@ -31,7 +35,8 @@ export const env = {
         password: parsed.DB_PASSWORD,
         name: parsed.DB_NAME,
         migrationDir: path.resolve(import.meta.dirname, "../../../", parsed.DB_MIGRATION_DIR),
-        migrationExtension: parsed.DB_MIGRATION_EXTENSION
+        migrationExtension: parsed.DB_MIGRATION_EXTENSION,
+        nodeEnvironment: parsed.NODE_ENV
         // poolMax: Number(parsed.POOL_MAX),
         // poolMin: Number(parsed.POOL_MIN),
         // poolIdleTimeoutMillis: Number(parsed.POOL_IDLE_TIMEOUT_MILLIS)

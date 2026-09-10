@@ -11,7 +11,6 @@ export async function up(knex: Knex): Promise<void> {
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         consumed_at TIMESTAMP NOT NULL
         );
-
         CREATE INDEX idx_password_resets_user_id ON password_resets(user_id);
         `
     )

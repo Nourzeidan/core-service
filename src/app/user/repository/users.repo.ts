@@ -64,3 +64,31 @@ export async function findExistingUserByEmailOrPhone(email: string, phone: strin
     // return user ? toEntity(user) : null;
     return user.rows[0].exists;
 }
+
+export async function findExistingUserByEmail(email: string): Promise<User | null> {
+    const user = await db.raw(`
+        SELECT EXISTS (SELECT 1 FROM users WHERE email = ?
+        AND deleted_at IS NULL) AS exists
+    `, [email]);
+    console.log(user);
+    // return user ? toEntity(user) : null;
+    return user.rows[0].exists;
+}
+
+export async function updateUserPassword(id: number, pass: string){
+    await db("users").where("id", id)
+    .update({password_hash: pass});
+}
+
+export async function findUserById(id: number): Promise<User | null> {
+    // Implementation for finding user by email
+    const user = await db('users').select(USER_COLUMNS)
+        .where({ id })
+        .whereNull('deleted_at')
+        .first();
+    if (!user) {
+        return null;
+    }
+    console.log(user);
+    return user? toEntity(user) : null;
+}

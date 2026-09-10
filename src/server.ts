@@ -2,12 +2,13 @@ import http from "http";
 import {createApp} from "./app.js";
 import {env} from "./common/config/env.js";
 import {db} from "./common/knex/knex.js";
+import {logger} from "./common/logger/logger.js";
 
 const app = createApp();
 const server = http.createServer(app);
 
-server.listen(env.port, async () => {
-    console.log(`Server is running on port ${env.port}`);
+server.listen(env.port, ()=> {
+    logger.info(`Server listening on ${env.port}`);
 })
 
 async function shutdown() {
