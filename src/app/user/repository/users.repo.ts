@@ -1,6 +1,6 @@
 import { User } from '../entity/user.entity.js';
 import {db} from "../../../common/knex/knex.js";
-
+import type { Knex } from "knex";
 const USER_COLUMNS = [
     "id",
     "email",
@@ -40,8 +40,8 @@ export async function findUserByEmail(email: string): Promise<User | null> {
     return user? toEntity(user) : null;
 }
 
-export async function createUser(user: Partial <User>): Promise<User> {
-    const [createdUser] = await db('users')
+export async function createUser(user: Partial <User>, conn: Knex = db): Promise<User> {
+    const [createdUser] = await conn('users')
         .insert({
             email: user.email,
             phone: user.phone,

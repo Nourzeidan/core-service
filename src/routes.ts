@@ -2,8 +2,13 @@ import {Router} from "express";
 import {healthRouter} from "./app/health/health.routes.js";
 import {authRouter} from "./app/auth/routes.js";
 import { userRouter } from "./app/user/routes.js";
-
+import { addressRouter } from "./app/customer/routes.js";
+import { restaurantRouter } from "./app/restaurant/routes.js";
+import { branchRouter } from "./app/branch/routes.js";
 export const routes = Router();
 routes.use(healthRouter);
 routes.use("/auth", authRouter);
 routes.use("/users", userRouter);
+routes.use("/customer", addressRouter);
+routes.use("/restaurant", restaurantRouter);
+routes.use("/", branchRouter);

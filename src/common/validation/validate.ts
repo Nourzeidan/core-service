@@ -2,8 +2,9 @@ import {validate, ValidationError} from "class-validator";
 // import {AppError} from "../error/error.js";
 import {AppError} from "../error/AppError.js";
 import {InvalidValidationError} from "../../app/auth/errors.js";
+import { plainToInstance } from "class-transformer";
 export async function validateBody<T extends Object>(cls: new () => T, body: unknown): Promise<T> {
-    const instance = Object.assign(new cls(), body);
+    const instance = plainToInstance(cls, body);
     const errors = await validate(instance, { whitelist: true });
 
     if (errors.length > 0) {

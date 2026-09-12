@@ -13,7 +13,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction){
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         throw NotAuthenticated;
     }
-
+    console.log(req.headers.authorization);
     const token = authHeader.split(' ')[1]
     
     if (!token) {
