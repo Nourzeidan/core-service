@@ -1,6 +1,7 @@
 import { db } from "../../../common/knex/knex.js";
 import { Branch } from "../entity/branch.entity.js";
 import type { Knex } from "knex";
+import { BranchNotFoundError } from "../errors.js";
 const BRANCH_COLUMNS = [
     "id",
     "restaurant_id",
@@ -77,5 +78,46 @@ export async function findNearbyBranches(lat: number, lng: number): Promise<Bran
     `,[lng, lat]);
 
     return result.rows;
+}
+
+export async function findBranchesByRestaurant(restaurantId: number): Promise<Branch[]> {
+    const rows = await db("restaurant_branches")
+    .select(BRANCH_COLUMNS)
+    .where("restaurant_id", restaurantId);
+    return rows.map(toEntity);
+}
+
+export async function updateBranch(data: Partial<Branch>, id: number): Promise<Branch | null> {
+    const [row] = await db("restaurant_branches")
+    .update({
+        country_code: data.countryCode,
+        address_text: data.addressText,
+        label: data.label,
+        lat: data.lat,
+        long: data.long,
+        is_active: data.isActive,
+        opens_at: data.opensAt,
+        closes_at: data.closesAt,
+        accept_orders: data.acceptOrders,
+        currency: data.currency,
+        commission: data.commission,
+        updated_at: data.updatedAt ?? new Date()
+    })
+    .where("id", id)
+    .returning(BRANCH_COLUMNS);
+
+    return toEntity(row);
+}
+
+export async function findBranchById(id: number): Promise<Branch | null> {
+    const [row] = await db("restaurant_branches")
+        .select(BRANCH_COLUMNS)
+        .where("id", id);
+
+    if (!row) {
+        throw BranchNotFoundError;
+    }
+
+    return toEntity(row);
 }
 

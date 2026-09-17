@@ -92,3 +92,20 @@ export async function findUserById(id: number): Promise<User | null> {
     console.log(user);
     return user? toEntity(user) : null;
 }
+
+export async function updateUser(user: Partial <User>, id: number): Promise<User | null> {
+    const [updatedUser] = await db('users')
+        .update({
+            email: user.email,
+            phone: user.phone,
+            name: user.name,
+            // password_hash: user.passwordHash,
+            // system_role: user.systemRole,
+            // created_at: user.createdAt,
+            updated_at: user.updatedAt
+        })
+        .where({id})
+        .returning(USER_COLUMNS);
+    if (!updatedUser) return null;
+    return toEntity(updatedUser);
+}

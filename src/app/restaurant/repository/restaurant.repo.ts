@@ -51,8 +51,41 @@ export async function createRestaurant(data: Partial<Restaurant>, conn:Knex = db
     return toEntity(row);
 }
 
-export async function findRestaurantById(id: number): Promise<Restaurant>{
-    const row = await db("restaurants").select(RESTAURANT_COLUMNS).
+export async function updateRestaurant(data: Partial<Restaurant>, id: number): Promise<Restaurant> {
+    const [row] = await db("restaurants")
+    .update({
+        owner_id: data.ownerId,
+        name: data.name,
+        logo_url: data.logoURL,
+        primary_country: data.primaryCountry,
+        updated_at: data.updatedAt ?? new Date()
+        // status_updated_at: data.statusUpdatedAt ?? new Date()
+    })
+    .where("id", id)
+    .returning(RESTAURANT_COLUMNS);
+    console.log('UPDATE RESULT:', row); console.log('DB CONFIG:', await db.raw('SELECT current_database(), inet_server_addr(), inet_server_port()')); 
+    return toEntity(row);
+
+}  
+
+export async function updateRestaurantStatus(data: Partial<Restaurant>, id: number): Promise<Restaurant> {
+    const [row] = await db("restaurants")
+    .update({
+        status: data.status,
+        status_updated_at: data.statusUpdatedAt ?? new Date()
+    })
+    .where("id", id)
+    .returning(RESTAURANT_COLUMNS);
+    return toEntity(row);
+
+}  
+
+export async function findRestaurantById(id: number): Promise<Restaurant | null>{
+    const [row] = await db("restaurants").select(RESTAURANT_COLUMNS).
     where("id", id);
+    if(!row){
+        return null;
+    }
+    console.log(row);
     return toEntity(row);
 }

@@ -1,6 +1,6 @@
 import { validateBody } from "../../../common/validation/validate.js";
 import type { SystemRole } from "../../user/enums.js";
-import { CreateBranchDTO } from "../dto/branch.dto.js";
+import { CreateBranchDTO, UpdateBranchDTO } from "../dto/branch.dto.js";
 import { createBranch } from "../repository/branch.repo.js";
 import { branchService, BranchService } from "../service/branch.service.js";
 import type { NextFunction, Request, Response } from "express";
@@ -26,6 +26,27 @@ export class BranchController {
             next(error);
         }
     }
+
+    findByRestaurant = async(req: Request, res:Response, next: NextFunction) => {
+        try {
+            const results = await this.branchService.findByRestaurant(Number(req.params.restaurantId));
+            res.status(200).json({data: results});
+        }catch(err){
+            next(err);
+        }
+    }
+
+    update = async(req: Request, res:Response, next: NextFunction) => {
+        try {
+            const data = await validateBody(UpdateBranchDTO, req.body);
+            const results = await this.branchService.update(Number(req.user?.userId),Number(req.params.id), data);
+            res.status(200).json(results);
+        }catch(err){
+            next(err);
+        }
+    }
+
+
 }
 
 export const branchController = new BranchController(branchService);
