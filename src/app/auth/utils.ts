@@ -13,6 +13,9 @@ export interface JwtPayload {
     userId: number;
     email: string;
     role: string; // mofeeda 3an enha teb2a query fel db
+    // restaurantId?: number;
+    // restaurantRole?: string;
+    // branchIds?: number[];
 }
 export function createAccessToken(payload: JwtPayload){
     // const payload = await jwt.verify(payload, process.env.ACCESS_TOKEN_SECRET as string);

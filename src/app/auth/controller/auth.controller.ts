@@ -67,6 +67,18 @@ export class AuthController {
             next(error);
         }
     }
+
+    acceptInvite = async (req: Request, res: Response, next: NextFunction) => {
+        try{
+            const data = await validateBody(ResetPasswordDTO, req.body);
+            await this.authService.acceptInvite(data);
+            res.status(200).json({
+                "message": "Invite accepted successful"
+            });
+        }catch(error){
+            next(error);
+        }
+    }
 }
 
 

@@ -27,6 +27,9 @@ declare global {
         interface Request {
             correlationId: string
             user?: JwtPayload
+            restaurantId?: number;
+            restaurantRole?: string;
+            branchIds?: number[];
         }
     }
 }

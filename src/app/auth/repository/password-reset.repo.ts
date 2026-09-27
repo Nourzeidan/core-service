@@ -1,5 +1,6 @@
 import { PasswordReset } from "../entity/password-reset.entity.js";
 import {db} from "../../../common/knex/knex.js";
+import type { Knex } from "knex";
 
 const PASSWORD_COLUMNS = [
     "id",
@@ -21,8 +22,8 @@ function toEntity(pass: any): PasswordReset {
  } );
 }
 
-export async function createPasswordReset(PasswordReset: Partial <PasswordReset>){
-    const [row] = await db('password_resets').insert({
+export async function createPasswordReset(PasswordReset: Partial <PasswordReset>, conn:Knex=db){
+    const [row] = await conn('password_resets').insert({
         user_id: PasswordReset.userId,
         otp_hash: PasswordReset.otpHash,
         created_at: PasswordReset.createdAt,

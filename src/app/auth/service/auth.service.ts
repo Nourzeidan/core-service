@@ -1,13 +1,24 @@
 import { RegisterDTO, LoginDTO, ForgetPassDTO, ResetPasswordDTO } from "../dto/auth.dto.js";
-import { createUser, findExistingUserByEmailOrPhone, findUserByEmail, findExistingUserByEmail, updateUserPassword } from "../../user/repository/users.repo.js";
+import { findExistingUserByEmailOrPhone, findUserByEmail, findExistingUserByEmail, updateUserPassword } from "../../user/repository/users.repo.js";
 import { createAccessToken, createRefreshToken, hashPassword, comparePassword, generateOTP, hashOTP } from "../utils.js";
 import { SystemRole } from "../../user/enums.js";
 import { UserAlreadyExistsError, CannotSignupAsSystemAdmin, InvalidCredentialsError, InvalidOTPError, RestaurantDataRequiredError } from "../errors.js";
 import { createPasswordReset, findLatestPasswordResetByUserid, updatePasswordResetConsumedAt } from "../repository/password-reset.repo.js";
-import { hoursToMS, MinsToMS } from "../../../common/time/time.js";
-import { restaurantService } from "../../restaurant/service/restaurant.service.js";
+import { MinsToMS } from "../../../common/time/time.js";
+import { RestaurantService, restaurantService } from "../../restaurant/service/restaurant.service.js";
 import { db } from "../../../common/knex/knex.js";
+import { activateMemberByUserId, findRestaurantMemberWithRole } from "../../rbac/repo/restaurant-member.repo.js";
+import { findBranchByMemberId } from "../../rbac/repo/member-branch.repo.js";
+import { userService, type UserService } from "../../user/service/user.service.js";
+import { memberService, type MemberService } from "../../rbac/service/member.service.js";
+import { MemberNotFoundError } from "../../rbac/errors.js";
 export class AuthService {
+    constructor(
+    private readonly restaurantService: RestaurantService,
+    private readonly userService: UserService,
+    private readonly memberService: MemberService
+    ) {}
+
     register = async (dto: RegisterDTO) => {
         // 1 check if user already exists by email (fn we did on repository)
         // 2 if exists throw error
@@ -26,28 +37,32 @@ export class AuthService {
         }
 
         let newUser;
-        const hashedPassword = await hashPassword(dto.password);
-        const now = new Date();
         const trx = await db.transaction();
         let restaurant;
+        let restaurantMemberInfo = null;
         try{
-            newUser = await createUser({
+            newUser = await this.userService.create({
                 email: dto.email,
                 phone: dto.phone,
                 name: dto.name,
-                passwordHash: hashedPassword,
+                password: dto.password,
                 systemRole: dto.role,
-                createdAt: now,
-                updatedAt: now
-            }, trx);
+            },trx);
 
             // let restaurant;
             if(dto.role === SystemRole.RESTAURANT_USER){
                 if (dto.restaurant === undefined){
                     throw RestaurantDataRequiredError;
                 }
-                restaurant = await restaurantService.create(newUser.id, dto.restaurant, trx);
+                restaurant = await this.restaurantService.create(newUser.id, dto.restaurant, trx);
+                await this.memberService.createOwnerMember(restaurant.id, newUser.id, trx);
                 console.log(newUser.id);
+
+                restaurantMemberInfo = {
+                restaurantId: restaurant.id,
+                restaurantRole: 'owner',
+                branchIds: []
+                };
             }
             await trx.commit();
         }catch(error){
@@ -58,7 +73,8 @@ export class AuthService {
         const payload = {
             userId: newUser.id,
             email: newUser.email,
-            role: newUser.systemRole
+            role: newUser.systemRole,
+            ...restaurantMemberInfo
         };
 
         const accessToken = createAccessToken(payload);
@@ -89,10 +105,23 @@ export class AuthService {
             throw InvalidCredentialsError;
         }
 
+        let restaurantMemberInfo = null;
+        if(user.systemRole == SystemRole.RESTAURANT_USER) {
+            const memberData = await findRestaurantMemberWithRole(user.id);
+            if(!memberData) throw MemberNotFoundError;
+            const branchIds = await findBranchByMemberId(memberData.member.id);
+            restaurantMemberInfo = {
+                restaurantId: memberData.member.restaurantId,
+                restaurantRole: memberData.member.roleName,
+                branchIds
+            }
+        }
+
         const payload = {
             userId: user.id,
             email: user.email,
-            role: user.systemRole
+            role: user.systemRole,
+            ...restaurantMemberInfo
         };
         const accessToken = createAccessToken(payload);
         const refreshToken = createRefreshToken(payload);
@@ -165,11 +194,20 @@ export class AuthService {
         const newHashPass = await hashPassword(dto.newPassword);
         await updateUserPassword(user.id, newHashPass);
 
-        await updatePasswordResetConsumedAt(reset.id)
+        await updatePasswordResetConsumedAt(reset.id);
+        return user;
     }
-    restaurantService: any;
+    // restaurantService: any;
+
+    acceptInvite = async(data: ResetPasswordDTO)=>{
+        // find user by email
+        //find password reset table by id
+        // 
+        const user = await this.resetPassword(data);
+        await activateMemberByUserId(user.id);
+    }
     
 
 }
 
-export const authService = new AuthService();
+export const authService = new AuthService(restaurantService, userService, memberService);
