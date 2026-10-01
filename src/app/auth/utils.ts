@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import type { SignOptions } from 'jsonwebtoken';
 import jwt from "jsonwebtoken";
-import { env } from '../../common/config/env.js';
+import { env } from '../../lib/config/env.js';
 import crypto from "crypto";
 
 

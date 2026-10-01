@@ -1,10 +1,14 @@
 import type { NextFunction , Request, Response} from "express";
-import { validateBody } from "../../../common/validation/validate.js";
-import { productService, ProductService } from "../service/product.service.js";
+import { validateBody } from "../../../lib/validation/validate.js";
+import { ProductService } from "../service/product.service.js";
 import { CreateProductDTO, UpdateProductDTO } from "../dto/product.dto.js";
 import type { SystemRole } from "../../user/enums.js";
+import { injectable, inject } from "tsyringe";
+import { TOKENS } from "../../../lib/di/tokens.js";
+
+@injectable()
 export class ProductController {
-    constructor(private readonly productService: ProductService){}
+    constructor(@inject(TOKENS.ProductService) private readonly productService: ProductService){}
 
     create =  async(req: Request, res: Response, next: NextFunction) => {
         try{
@@ -64,4 +68,3 @@ export class ProductController {
         }
     }
 }
-export const productController = new ProductController(productService);

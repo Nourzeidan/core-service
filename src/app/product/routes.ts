@@ -1,9 +1,13 @@
 import { Router } from "express";
-import { authenticate } from "../../common/auth/guard.js";
-import {productController} from "./controller/product.controller.js"
+import { authenticate } from "../../lib/auth/guard.js";
+import {ProductController} from "./controller/product.controller.js"
 import { rbac, requireRestaurantMember, requireBranchAccess } from "../auth/rbac.js";
+import { container} from "../../lib/di/container.js";
+import { TOKENS } from "../../lib/di/tokens.js"
 
 export const productRouter = Router();
+
+const productController = container.resolve<ProductController>(TOKENS.ProductController);
 productRouter.post('/restaurants/:restaurantId/products', 
     authenticate,
     requireRestaurantMember('restaurantId'),

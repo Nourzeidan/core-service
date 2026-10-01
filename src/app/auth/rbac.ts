@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { NotAuthenticated } from "../../common/auth/errors.js";
+import { NotAuthenticated } from "../../lib/auth/errors.js";
 import { SystemRole } from "../user/enums.js";
 import { permissionCacheService } from "../rbac/service/permission-cache.service.js";
 export interface RBACOptions {

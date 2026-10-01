@@ -1,6 +1,6 @@
 import type { Knex } from "knex";
 import { Permission } from "../entity/permission.entity.js";
-import { db } from "../../../common/knex/knex.js";
+import { db } from "../../../lib/knex/knex.js";
 // import { permission } from "node:process";
 const PERMISSION_COLUMNS = [
     "id",

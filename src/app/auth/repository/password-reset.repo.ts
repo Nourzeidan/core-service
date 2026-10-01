@@ -1,5 +1,5 @@
 import { PasswordReset } from "../entity/password-reset.entity.js";
-import {db} from "../../../common/knex/knex.js";
+import {db} from "../../../lib/knex/knex.js";
 import type { Knex } from "knex";
 
 const PASSWORD_COLUMNS = [

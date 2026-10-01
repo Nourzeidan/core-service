@@ -1,10 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
-import { validateBody } from "../../../../common/validation/validate.js";
+import { validateBody } from "../../../../lib/validation/validate.js";
 import { CreateAddressDTO, UpdateAddressDTO} from "../dto/address.dto.js";
-import { env } from '../../../../common/config/env.js';
-import { AddressService, addressService } from "../service/address.service.js";
+import { env } from '../../../../lib/config/env.js';
+import { AddressService } from "../service/address.service.js";
+import { injectable, inject } from "tsyringe";
+import { TOKENS } from "../../../../lib/di/tokens.js";
+
+@injectable()
 export class AddressController {
-     constructor(private readonly addressService: AddressService) {
+     constructor(@inject(TOKENS.AddressService) private readonly addressService: AddressService) {
         }
     
     createAddress = async (req: Request, res: Response, next: NextFunction) => {
@@ -56,5 +60,3 @@ export class AddressController {
     }
 }
 }
-
-export const addressController = new AddressController(addressService);

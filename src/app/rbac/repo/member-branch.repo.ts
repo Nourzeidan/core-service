@@ -1,6 +1,6 @@
 import { MemberBranch } from "../entity/member-branch.entity.js";
 import type { Knex } from "knex";
-import { db } from "../../../common/knex/knex.js";
+import { db } from "../../../lib/knex/knex.js";
 
 const MEMBER_BRANCH_COLUMNS = [
     "member_id",

@@ -3,17 +3,20 @@ import { findRestaurantById } from "../../restaurant/repository/restaurant.repo.
 import { createProduct, findProductsByBranch, findProductsByRestaurant, findProductById, updateProduct } from "../repo/product.repo.js";
 import { findCategoryByRestaurantAndName, findCategoryByRestaurant } from "../repo/product-category.repo.js";
 import { UserNotFoundError } from "../../user/errors.js";
-import { unAuthorizedError } from "../../../common/auth/errors.js";
+import { unAuthorizedError } from "../../../lib/auth/errors.js";
 import { RestaurantNotFoundError } from "../../restaurant/errors.js";
 import { SystemRole } from "../../user/enums.js";
 import { CreateProductDTO, UpdateProductDTO } from "../dto/product.dto.js";
 import { createCategory } from "../repo/product-category.repo.js";
-import {db} from "../../../common/knex/knex.js";
+import {db} from "../../../lib/knex/knex.js";
 import { findBranchById } from "../../branch/repository/branch.repo.js";
 import { BranchNotFoundError } from "../../branch/errors.js";
 import { ProductNotFoundError } from "../errors.js";
 import { updateBranchDetails } from "../repo/product-branch.repo.js";
+import { injectable } from "tsyringe";
 
+
+@injectable()
 export class ProductService {
     create = async(userId: number, restaurantId: number, userRole: SystemRole, data: CreateProductDTO) => {
         const user = await findUserById(userId);
@@ -196,4 +199,3 @@ export class ProductService {
 
 
 }
-export const productService = new ProductService();

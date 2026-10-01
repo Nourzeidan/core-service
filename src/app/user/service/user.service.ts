@@ -4,8 +4,10 @@ import { createUser, findExistingUserByEmailOrPhone, findUserById, updateUser } 
 import { SystemRole } from "../enums.js";
 import { UserAlreadyExistsError } from "../../auth/errors.js";
 import { hashPassword } from "../../auth/utils.js";
-import { db } from "../../../common/knex/knex.js";
+import { db } from "../../../lib/knex/knex.js";
 import type {Knex} from "knex";
+import { injectable } from "tsyringe";
+
 
 interface CreateUserData {
     email: string;
@@ -15,6 +17,7 @@ interface CreateUserData {
     systemRole: SystemRole;
 }
 
+@injectable()
 export class UserService {
     getByUserId = async(userId: number) => {
         const user = await findUserById(userId);
@@ -82,5 +85,3 @@ export class UserService {
         
     }
 }
-// singleton pattern
-export const userService = new UserService();

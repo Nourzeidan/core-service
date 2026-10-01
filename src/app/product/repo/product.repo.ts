@@ -1,6 +1,6 @@
 import { Product } from "../entity/product.entity.js";
 import type { Knex } from "knex";
-import {db} from "../../../common/knex/knex.js";
+import {db} from "../../../lib/knex/knex.js";
 import { ProductNotFoundError } from "../errors.js";
 const PRODUCT_COLUMNS = [
     "id",

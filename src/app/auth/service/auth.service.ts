@@ -4,19 +4,23 @@ import { createAccessToken, createRefreshToken, hashPassword, comparePassword, g
 import { SystemRole } from "../../user/enums.js";
 import { UserAlreadyExistsError, CannotSignupAsSystemAdmin, InvalidCredentialsError, InvalidOTPError, RestaurantDataRequiredError } from "../errors.js";
 import { createPasswordReset, findLatestPasswordResetByUserid, updatePasswordResetConsumedAt } from "../repository/password-reset.repo.js";
-import { MinsToMS } from "../../../common/time/time.js";
-import { RestaurantService, restaurantService } from "../../restaurant/service/restaurant.service.js";
-import { db } from "../../../common/knex/knex.js";
+import { MinsToMS } from "../../../pkg/utils/time.js";
+import { RestaurantService } from "../../restaurant/service/restaurant.service.js";
+import { db } from "../../../lib/knex/knex.js";
 import { activateMemberByUserId, findRestaurantMemberWithRole } from "../../rbac/repo/restaurant-member.repo.js";
 import { findBranchByMemberId } from "../../rbac/repo/member-branch.repo.js";
-import { userService, type UserService } from "../../user/service/user.service.js";
-import { memberService, type MemberService } from "../../rbac/service/member.service.js";
+import { type UserService } from "../../user/service/user.service.js";
+import { type MemberService } from "../../rbac/service/member.service.js";
 import { MemberNotFoundError } from "../../rbac/errors.js";
+import { inject, injectable } from "tsyringe";
+import { TOKENS } from "../../../lib/di/tokens.js";
+
+@injectable()
 export class AuthService {
     constructor(
-    private readonly restaurantService: RestaurantService,
-    private readonly userService: UserService,
-    private readonly memberService: MemberService
+    @inject(TOKENS.RestaurantService) private readonly restaurantService: RestaurantService,
+    @inject(TOKENS.UserService) private readonly userService: UserService,
+    @inject(TOKENS.MemberService) private readonly memberService: MemberService
     ) {}
 
     register = async (dto: RegisterDTO) => {
@@ -210,4 +214,4 @@ export class AuthService {
 
 }
 
-export const authService = new AuthService(restaurantService, userService, memberService);
+// export const authService = new AuthService(restaurantService, userService, memberService);

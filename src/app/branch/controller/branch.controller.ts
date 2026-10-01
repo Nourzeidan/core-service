@@ -1,11 +1,15 @@
-import { validateBody } from "../../../common/validation/validate.js";
+import { injectable, inject } from "tsyringe";
+import { validateBody } from "../../../lib/validation/validate.js";
 import type { SystemRole } from "../../user/enums.js";
 import { CreateBranchDTO, UpdateBranchDTO } from "../dto/branch.dto.js";
 import { createBranch } from "../repository/branch.repo.js";
-import { branchService, BranchService } from "../service/branch.service.js";
+import {  BranchService } from "../service/branch.service.js";
 import type { NextFunction, Request, Response } from "express";
+import { TOKENS } from "../../../lib/di/tokens.js";
+
+@injectable()
 export class BranchController {
-    constructor(private readonly branchService: BranchService ){}
+    constructor(@inject(TOKENS.BranchService) private readonly branchService: BranchService ){}
 
     create = async(req: Request, res:Response,next: NextFunction) => {
         try{
@@ -48,5 +52,3 @@ export class BranchController {
 
 
 }
-
-export const branchController = new BranchController(branchService);

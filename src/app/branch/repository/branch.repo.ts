@@ -1,4 +1,4 @@
-import { db } from "../../../common/knex/knex.js";
+import { db } from "../../../lib/knex/knex.js";
 import { Branch } from "../entity/branch.entity.js";
 import type { Knex } from "knex";
 import { BranchNotFoundError } from "../errors.js";

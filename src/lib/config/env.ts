@@ -18,7 +18,11 @@ const envSchema = z.object({
   REFRESH_SECRET: z.string(),
   ACCESS_EXPIRES_IN: z.string(),
   REFRESH_EXPIRES_IN: z.string(),
-  NODE_ENV: z.string()
+  NODE_ENV: z.string(),
+  CORS_ORIGINS: z.string().default('http://localhost:3000'),
+  REDIS_HOST: z.string().default('localhost'),
+  REDIS_PORT: z.string().default('6379'),
+  REDIS_PASSWORD: z.string().default(""),
 });
 
 const parsed = envSchema.parse(process.env);
@@ -47,6 +51,14 @@ export const env = {
         refreshSecret: parsed.REFRESH_SECRET,
         accessExpiresIn: parsed.ACCESS_EXPIRES_IN,
         refreshExpiresIn: parsed.REFRESH_EXPIRES_IN
+    },
+    isProduction: process.env.NODE_ENV === "production",
+    cors: {
+        origin: parsed.CORS_ORIGINS.split(','),
+    },
+    redis: {
+        host: parsed.REDIS_HOST,
+        port: Number(parsed.REDIS_PORT),
+        password: parsed.REDIS_PASSWORD,
     }
-
 }

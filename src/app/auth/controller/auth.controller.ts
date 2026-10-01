@@ -1,11 +1,16 @@
-import {AuthService, authService} from "../service/auth.service.js";
+import {AuthService} from "../service/auth.service.js";
 import type { NextFunction, Request, Response } from "express";
 import { RegisterDTO, LoginDTO, ForgetPassDTO, ResetPasswordDTO } from "../dto/auth.dto.js";
-import { validateBody } from "../../../common/validation/validate.js";
-import { env } from '../../../common/config/env.js';
-import { hoursToMS, daysToMs } from "../../../common/time/time.js";
+import { validateBody } from "../../../lib/validation/validate.js";
+import { env } from '../../../lib/config/env.js';
+import { hoursToMS, daysToMs } from "../../../pkg/utils/time.js";
+import { injectable, inject } from "tsyringe";
+import { TOKENS } from "../../../lib/di/tokens.js";
+import { sendSuccess } from "../../../lib/http/response.js";
+
+@injectable()
 export class AuthController {
-    constructor(private readonly authService: AuthService) {
+    constructor(@inject(TOKENS.AuthService) private readonly authService: AuthService) {
     }
 
     register = async (req: Request, res: Response, next: NextFunction) => {
@@ -15,7 +20,7 @@ export class AuthController {
             // 3 return response
             const data = await validateBody(RegisterDTO, req.body);
             const result = await this.authService.register(data);
-            res.status(201).json(result);
+            sendSuccess(res, result, 201);
         } catch (error) {
             next(error); // 3shan te use el error handler middleware
         }
@@ -38,7 +43,7 @@ export class AuthController {
                     maxAge: daysToMs(7)
                     // path: '/api/auth/refresh'
                 });
-                res.status(201).json(result);
+                sendSuccess(res, result, 201);
         } catch (error) {
                 next(error); // 3shan te use el error handler middleware
             }
@@ -48,7 +53,7 @@ export class AuthController {
         try{
             const data = await validateBody(ForgetPassDTO, req.body);
             await this.authService.forgetPassword(data);
-            res.status(200).json({
+            sendSuccess(res, {
                 "message": "email sent"
             });
         }catch(error){
@@ -60,7 +65,7 @@ export class AuthController {
         try{
             const data = await validateBody(ResetPasswordDTO, req.body);
             await this.authService.resetPassword(data);
-            res.status(200).json({
+            sendSuccess(res, {
                 "message": "password reset successful"
             });
         }catch(error){
@@ -72,7 +77,7 @@ export class AuthController {
         try{
             const data = await validateBody(ResetPasswordDTO, req.body);
             await this.authService.acceptInvite(data);
-            res.status(200).json({
+            sendSuccess(res, {
                 "message": "Invite accepted successful"
             });
         }catch(error){
@@ -80,6 +85,3 @@ export class AuthController {
         }
     }
 }
-
-
-export const authController = new AuthController(authService);

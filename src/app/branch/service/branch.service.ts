@@ -1,13 +1,16 @@
 import { SystemRole } from "../../user/enums.js";
 import { createBranch, findNearbyBranches, findBranchesByRestaurant, updateBranch, findBranchById } from "../repository/branch.repo.js";
 import { findRestaurantById } from "../../restaurant/repository/restaurant.repo.js";
-import { unAuthorizedError } from "../../../common/auth/errors.js";
+import { unAuthorizedError } from "../../../lib/auth/errors.js";
 import type { CreateBranchDTO, UpdateBranchDTO } from "../dto/branch.dto.js";
 import { RestaurantNotFoundError } from "../../restaurant/errors.js";
 import { UserNotFoundError } from "../../user/errors.js";
 import { BranchNotFoundError } from "../errors.js";
 import { findUserById } from "../../user/repository/users.repo.js";
 import { Branch } from "../entity/branch.entity.js";
+import { injectable } from "tsyringe";
+
+@injectable()
 export class BranchService {
     findNearBy = async (lat: number, lng:number) => {
         const rows = await findNearbyBranches(lat, lng);
@@ -119,5 +122,3 @@ export class BranchService {
     };
     
 }
-
-export const branchService = new BranchService();

@@ -1,6 +1,8 @@
+import { injectable } from "tsyringe";
 import { AddressNotFoundError } from "../../errors.js";
 import type { CreateAddressDTO, UpdateAddressDTO } from "../dto/address.dto.js";
 import { createAddress, findAllAddressesByUserId, resetDefaultAddress, findAddressById, updateAddress, deleteAddress} from "../repository/address.repo.js";
+@injectable()
 export class AddressService {
     createAddress = async (userId: number, dto: CreateAddressDTO) => {
         const existing = await findAllAddressesByUserId(userId);
@@ -98,5 +100,3 @@ export class AddressService {
     }
 
 }
-
-export const addressService = new AddressService();

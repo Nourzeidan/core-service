@@ -1,8 +1,12 @@
 import { Router } from "express";
-import { authenticate } from "../../common/auth/guard.js";
-import { memberController } from "./controller/member.controller.js";
+import { authenticate } from "../../lib/auth/guard.js";
+import type { MemberController } from "./controller/member.controller.js";
 import { rbac, requireRestaurantMember } from "../auth/rbac.js";
+import { container} from "../../lib/di/container.js";
+import { TOKENS } from "../../lib/di/tokens.js";
+
 export const memberRouter = Router();
+const memberController = container.resolve<MemberController>(TOKENS.MemberController);
 
 memberRouter.post('/restaurants/:restaurantId/members',
     authenticate,

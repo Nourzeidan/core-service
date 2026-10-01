@@ -1,6 +1,6 @@
-import { hoursToMS } from "../../../common/time/time.js";
+import { hoursToMS } from "../../../pkg/utils/time.js";
 import { getPermissionByRoleName, getPermissionsDetailsByRoleName } from "../repo/permission.repo.js";
-class PermissionCacheService {
+export class PermissionCacheService {
     private cache: Map<string, {permissions: string[], cachedAt: number}> = new Map();
     private readonly TTL = hoursToMS(1);
 

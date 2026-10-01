@@ -20,7 +20,7 @@
 //     }
 // }
 
-import { JwtPayload } from '../app/auth/utils.js'
+import { JwtPayload } from '../app/auth/utils.ts'
 
 declare global {
     namespace Express {

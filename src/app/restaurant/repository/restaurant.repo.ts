@@ -1,6 +1,7 @@
 import { Restaurant } from "../entity/restaurant.entity.js";
-import { db } from "../../../common/knex/knex.js";
+import { db } from "../../../lib/knex/knex.js";
 import type { Knex } from "knex";
+import { applyCursorPagination, applyFilters, type FilterParams, type PaginationParams } from "../../../lib/http/pagination/cursor-pagination.js";
 const RESTAURANT_COLUMNS = [
     "id",
     "owner_id",
@@ -27,8 +28,11 @@ function toEntity(restaurant: any): Restaurant {
     });
 }
 
-export async function findAllRestaurants(): Promise<Restaurant[]>{
-    const rows = await db("restaurants").select(RESTAURANT_COLUMNS);
+export async function findAllRestaurants(params: PaginationParams, filters: FilterParams[]): Promise<Restaurant[]>{
+    let query = db("restaurants").select(RESTAURANT_COLUMNS);
+    query = applyFilters(query, filters);
+    query = applyCursorPagination(query, params);
+    const rows = await query;
     return rows.map(toEntity);
 }
 

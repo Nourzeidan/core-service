@@ -1,5 +1,5 @@
 import { ProductBranchDetails } from "../entity/product-branch.entity.js";
-import { db } from "../../../common/knex/knex.js";
+import { db } from "../../../lib/knex/knex.js";
 import type { Knex } from "knex";
 
 const PRODUCT_BRANCH_DETAILS_COLUMNS = [

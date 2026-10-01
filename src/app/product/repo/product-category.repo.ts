@@ -1,6 +1,6 @@
 import { ProductCategory } from "../entity/product-categories.entity.js";
 import type { Knex } from "knex";
-import {db} from "../../../common/knex/knex.js";
+import {db} from "../../../lib/knex/knex.js";
 
 
 const PRODUCT_CATEGORY_COLUMNS = [

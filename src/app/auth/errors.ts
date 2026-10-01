@@ -1,4 +1,4 @@
-import {AppError} from "../../common/error/AppError.js";
+import {AppError} from "../../lib/error/AppError.js";
 
 export const UserAlreadyExistsError = new AppError('User Already Exists with same phone or email', 400);
 

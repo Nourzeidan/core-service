@@ -8,10 +8,15 @@ import type { UpdateRestaurantDTO, UpdateRestaurantStatusDTO } from "../dto/rest
 import { findUserById } from "../../user/repository/users.repo.js";
 import { UserNotFoundError } from "../../user/errors.js";
 import { SystemRole } from "../../user/enums.js";
-import { db } from "../../../common/knex/knex.js";
-import { userService, UserService } from "../../user/service/user.service.js";
+import { UserService } from "../../user/service/user.service.js";
+import { injectable, inject } from "tsyringe";
+import { TOKENS } from "../../../lib/di/tokens.js";
+import { buildPaginationResult, type PaginationParams } from "../../../lib/http/pagination/cursor-pagination.js";
+import type { FilterParams } from "../../../lib/http/pagination/cursor-pagination.js";
+
+@injectable()
 export class RestaurantService {
-    constructor(private readonly userService: UserService){}
+    constructor(@inject(TOKENS.UserService) private readonly userService: UserService){}
     create = async (userId: number, data: RegisterRestaurantDTO, trx: Knex)=>{
         const now = new Date();
         const restaurant = new Restaurant({
@@ -29,9 +34,9 @@ export class RestaurantService {
         return result;
     }
 
-    findAll = async() => {
-        const result = await findAllRestaurants();
-        return result;
+    findAll = async(params: PaginationParams, filters: FilterParams[]) => {
+        const result = await findAllRestaurants(params, filters);
+        return buildPaginationResult(result, params.limit, params.sortBy);
     }
 
     findById = async(id: number) => {
@@ -100,7 +105,4 @@ export class RestaurantService {
         };
     }
 }
-
-export const restaurantService = new RestaurantService(userService);
-
 

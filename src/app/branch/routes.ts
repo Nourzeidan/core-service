@@ -1,11 +1,16 @@
 import { Router } from "express";
-import { branchController } from "./controller/branch.controller.js";
-import { authenticate } from "../../common/auth/guard.js";
+import type { BranchController } from "./controller/branch.controller.js";
+import { authenticate } from "../../lib/auth/guard.js";
 import { rbac, requireRestaurantMember, requireBranchAccess } from "../auth/rbac.js";
+import { container} from "../../lib/di/container.js";
+import { TOKENS } from "../../lib/di/tokens.js";
+import { withCache } from "../../lib/cache/withCache.js";
 
 export const branchRouter = Router();
 
-branchRouter.get('/branches/nearby', branchController.findNearBy);
+const branchController = container.resolve<BranchController>(TOKENS.BranchController);
+
+branchRouter.get('/branches/nearby', withCache(),branchController.findNearBy);
 branchRouter.post('/restaurants/:restaurantId/branches',
     authenticate,
     requireRestaurantMember('restaurantId'), 

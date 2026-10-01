@@ -1,5 +1,5 @@
 import { useContainer } from "class-validator";
-import {db} from "../../../../common/knex/knex.js";
+import {db} from "../../../../lib/knex/knex.js";
 import {CustomerAddress} from "../entity/addresses.entity.js";
 const ADDRESS_COLUMNS = [
     "id",

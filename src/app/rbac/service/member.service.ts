@@ -4,20 +4,23 @@ import { CannotCreateOwnerUserError, CannotDeleteOwnerError, InvalidBranchesToRe
 import { createUser, findUserByEmail, findUserById } from "../../user/repository/users.repo.js";
 import { UserAlreadyExistsError } from "../../auth/errors.js";
 import { findRoleByName } from "../repo/role.repo.js";
-import { db } from "../../../common/knex/knex.js";
+import { db } from "../../../lib/knex/knex.js";
 import { SystemRole } from "../../user/enums.js";
 import { MemberStatus } from "../enums.js";
 import { createRestaurantMember, deleteMember, findMembersByRestaurantId, findMemberWithRoleName, updateMember } from "../repo/restaurant-member.repo.js";
 import { countBranchesByIdsAndRestaurant, setMemberBranches } from "../repo/member-branch.repo.js";
 import { generateOTP, hashOTP } from "../../auth/utils.js";
 import { createPasswordReset } from "../../auth/repository/password-reset.repo.js";
-import { MinsToMS } from "../../../common/time/time.js";
-import { getPermissionByRoleName, getPermissionsDetailsByRoleName } from "../repo/permission.repo.js";
+import { MinsToMS } from "../../../pkg/utils/time.js";
+import { getPermissionsDetailsByRoleName } from "../repo/permission.repo.js";
 import type {Knex} from "knex";
-import { UserNotFoundError } from "../../user/errors.js";
-import { UserService, userService } from "../../user/service/user.service.js";
+import { UserService } from "../../user/service/user.service.js";
+import { injectable, inject } from "tsyringe";
+import { TOKENS } from "../../../lib/di/tokens.js";
+
+@injectable()
 export class MemberService {
-    constructor(private readonly userService: UserService) {}
+    constructor(@inject(TOKENS.UserService) private readonly userService: UserService){}
     async createRestaurantMember(restaurantId: number, data: CreateMemberDTO) {
         // dont accept owner role creation
         if(data.role == 'owner'){
@@ -182,5 +185,3 @@ export class MemberService {
             return {role: roleName, permissions};
     }
 }
-
-export const memberService = new MemberService(userService);

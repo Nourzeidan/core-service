@@ -1,4 +1,4 @@
-import { AppError } from "../../common/error/AppError.js";
+import { AppError } from "../../lib/error/AppError.js";
 
 export const CannotCreateOwnerUserError = new AppError('Not allowed to create', 404);
 export const RoleNotFoundError = new AppError('Role not found error!', 404);
