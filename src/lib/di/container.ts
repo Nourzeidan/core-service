@@ -21,6 +21,7 @@ import { PermissionCacheService } from "../../app/rbac/service/permission-cache.
 // Lib / Info
 import { Logger } from "../logger/logger.js"; 
 import { cacheProvider } from "../cache/init.js";
+import { emailProvider } from "../email/init.js";
 
 container.registerSingleton<UserService>(TOKENS.UserService, UserService);
 container.registerSingleton<AuthService>(TOKENS.AuthService, AuthService);
@@ -43,4 +44,5 @@ container.registerSingleton<AddressController>(TOKENS.AddressController, Address
 // Register Lib / Logger
 container.registerSingleton<Logger>(TOKENS.Logger, Logger);
 container.registerInstance(TOKENS.CacheProvider, cacheProvider);
+container.registerInstance(TOKENS.EmailProvider, emailProvider);
 export {container};

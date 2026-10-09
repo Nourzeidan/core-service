@@ -24,6 +24,7 @@
     "declarationMap": true,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": false,
+    "esModuleInterop": true,
 
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,

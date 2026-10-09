@@ -13,14 +13,16 @@ import { type UserService } from "../../user/service/user.service.js";
 import { type MemberService } from "../../rbac/service/member.service.js";
 import { MemberNotFoundError } from "../../rbac/errors.js";
 import { inject, injectable } from "tsyringe";
+import type { IEmailProvider } from "../../../pkg/email/email.interface.js";
 import { TOKENS } from "../../../lib/di/tokens.js";
-
+import { passwordResetTemplate } from "../templates/password-reset.js";
 @injectable()
 export class AuthService {
     constructor(
     @inject(TOKENS.RestaurantService) private readonly restaurantService: RestaurantService,
     @inject(TOKENS.UserService) private readonly userService: UserService,
-    @inject(TOKENS.MemberService) private readonly memberService: MemberService
+    @inject(TOKENS.MemberService) private readonly memberService: MemberService,
+    @inject(TOKENS.EmailProvider) private readonly emailProvider: IEmailProvider
     ) {}
 
     register = async (dto: RegisterDTO) => {
@@ -168,7 +170,8 @@ export class AuthService {
             createdAt: new Date()
         });
 
-        // todo: email
+        const content = passwordResetTemplate(otp);
+        await this.emailProvider.send(dto.email, content.subject, content.html);
         console.log(`email sent ${otp}`);
     }
 

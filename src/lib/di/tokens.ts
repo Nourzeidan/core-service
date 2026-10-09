@@ -23,5 +23,7 @@ export const TOKENS = {
     // Lib/info/
     Logger: Symbol.for("Logger"),
     CacheProvider: Symbol.for("CacheProvider"),
+    // Lib/email/
+    EmailProvider: Symbol.for("EmailProvider"),
 
 }

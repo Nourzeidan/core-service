@@ -15,12 +15,14 @@ import { MinsToMS } from "../../../pkg/utils/time.js";
 import { getPermissionsDetailsByRoleName } from "../repo/permission.repo.js";
 import type {Knex} from "knex";
 import { UserService } from "../../user/service/user.service.js";
+import type { IEmailProvider } from "../../../pkg/email/email.interface.js";
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../../../lib/di/tokens.js";
-
+import { memberInvitationEmail } from "../templates/member-invitation.js";
 @injectable()
 export class MemberService {
-    constructor(@inject(TOKENS.UserService) private readonly userService: UserService){}
+    constructor(@inject(TOKENS.UserService) private readonly userService: UserService,
+                @inject(TOKENS.EmailProvider) private readonly emailProvider: IEmailProvider){}
     async createRestaurantMember(restaurantId: number, data: CreateMemberDTO) {
         // dont accept owner role creation
         if(data.role == 'owner'){
@@ -79,7 +81,8 @@ export class MemberService {
                 createdAt: new Date()
             }, trx);
 
-            // todo: email
+            const emailContent = memberInvitationEmail(otp, data.role);
+            await this.emailProvider.send(data.email, emailContent.subject, emailContent.html);
             console.log(`email sent ${otp}`);
 
             await trx.commit();
