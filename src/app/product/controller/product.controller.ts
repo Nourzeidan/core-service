@@ -1,7 +1,7 @@
 import type { NextFunction , Request, Response} from "express";
 import { validateBody } from "../../../lib/validation/validate.js";
 import { ProductService } from "../service/product.service.js";
-import { CreateProductDTO, UpdateProductDTO } from "../dto/product.dto.js";
+import { BranchProductsBatchDTO, CreateProductDTO, ReleaseStockDTO, ReserveStockDTO, UpdateProductDTO } from "../dto/product.dto.js";
 import type { SystemRole } from "../../user/enums.js";
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../../../lib/di/tokens.js";
@@ -65,6 +65,39 @@ export class ProductController {
             res.status(200).json(product);
         }catch(error){
             next(error);
+        }
+    }
+
+    // ---- internal (order-service): raw bodies, no {data: ...} wrapper ----
+
+    findBranchProducts = async(req: Request, res: Response, next: NextFunction) => {
+        try{
+            const data = await validateBody(BranchProductsBatchDTO, req.body);
+            const result = await this.productService.findBranchProducts(Number(req.params.id), data.productIds);
+            res.status(200).json(result);
+        }catch(err){
+            next(err);
+        }
+    }
+
+    // 204 = done, no body (the contract order-service expects)
+    reserveStock = async(req: Request, res: Response, next: NextFunction) => {
+        try{
+            const data = await validateBody(ReserveStockDTO, req.body);
+            await this.productService.reserveStock(Number(req.params.id), data);
+            res.status(204).send();
+        }catch(err){
+            next(err);
+        }
+    }
+
+    releaseStock = async(req: Request, res: Response, next: NextFunction) => {
+        try{
+            const data = await validateBody(ReleaseStockDTO, req.body);
+            await this.productService.releaseStock(Number(req.params.id), data);
+            res.status(204).send();
+        }catch(err){
+            next(err);
         }
     }
 }

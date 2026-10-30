@@ -1,7 +1,7 @@
 import { injectable } from "tsyringe";
-import { AddressNotFoundError } from "../../errors.js";
+import { AddressNotFoundError, AddressNotOwnedError } from "../../errors.js";
 import type { CreateAddressDTO, UpdateAddressDTO } from "../dto/address.dto.js";
-import { createAddress, findAllAddressesByUserId, resetDefaultAddress, findAddressById, updateAddress, deleteAddress} from "../repository/address.repo.js";
+import { createAddress, findAllAddressesByUserId, resetDefaultAddress, findAddressById, updateAddress, deleteAddress, findAddressByIdAndUser} from "../repository/address.repo.js";
 @injectable()
 export class AddressService {
     createAddress = async (userId: number, dto: CreateAddressDTO) => {
@@ -97,6 +97,23 @@ export class AddressService {
     findAddresses = async (userId: number) => {
         const addresses = await findAllAddressesByUserId(userId);
         return addresses;
+    }
+
+    // delivery address snapshot for order-service (copied onto the order at checkout)
+    findOwnedAddress = async (userId: number, addressId: number) => {
+        const address = await findAddressByIdAndUser(addressId, userId);
+        if (!address) {
+            throw AddressNotOwnedError;
+        }
+        return {
+            id: Number(address.id),
+            userId: Number(address.userId),
+            lat: Number(address.lat),   // DECIMAL comes back from pg as a string
+            lng: Number(address.lng),
+            addressText: [address.apartment, address.building, address.street, address.city, address.country]
+                .filter(part => part && part.trim().length > 0)
+                .join(", ")
+        };
     }
 
 }

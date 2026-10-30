@@ -2,8 +2,7 @@ import {AuthService} from "../service/auth.service.js";
 import type { NextFunction, Request, Response } from "express";
 import { RegisterDTO, LoginDTO, ForgetPassDTO, ResetPasswordDTO } from "../dto/auth.dto.js";
 import { validateBody } from "../../../lib/validation/validate.js";
-import { env } from '../../../lib/config/env.js';
-import { hoursToMS, daysToMs } from "../../../pkg/utils/time.js";
+import { setAccessTokenCookie, setAuthCookies } from "../../../lib/utils/cookie.js";
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../../../lib/di/tokens.js";
 import { sendSuccess } from "../../../lib/http/response.js";
@@ -32,17 +31,7 @@ export class AuthController {
                 // 3 return response
                 const data = await validateBody(LoginDTO, req.body);
                 const result = await this.authService.login(data);
-                res.cookie("access_token", result.accessToken, {
-                    httpOnly: true,
-                    secure: env.app.nodeEnv === 'production',
-                    maxAge: hoursToMS(1)
-                });
-                res.cookie("refresh_token", result.refreshToken, {
-                    httpOnly: true,
-                    secure: env.app.nodeEnv === 'production',
-                    maxAge: daysToMs(7)
-                    // path: '/api/auth/refresh'
-                });
+                setAuthCookies(res, result.accessToken, result.refreshToken);
                 sendSuccess(res, result, 201);
         } catch (error) {
                 next(error); // 3shan te use el error handler middleware
@@ -68,6 +57,19 @@ export class AuthController {
             sendSuccess(res, {
                 "message": "password reset successful"
             });
+        }catch(error){
+            next(error);
+        }
+    }
+
+    // refresh token from the cookie (browsers) or the body (mobile apps that keep it themselves).
+    // the new access token is set as a cookie AND returned, like login does
+    refresh = async (req: Request, res: Response, next: NextFunction) => {
+        try{
+            const refreshToken = req.cookies?.refresh_token ?? req.body?.refreshToken;
+            const result = await this.authService.refresh(refreshToken);
+            setAccessTokenCookie(res, result.accessToken);
+            sendSuccess(res, result);
         }catch(error){
             next(error);
         }

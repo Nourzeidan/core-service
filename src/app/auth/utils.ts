@@ -3,6 +3,7 @@ import type { SignOptions } from 'jsonwebtoken';
 import jwt from "jsonwebtoken";
 import { env } from '../../lib/config/env.js';
 import crypto from "crypto";
+import { NotAuthenticated } from '../../lib/auth/errors.js';
 
 
 export async function hashPassword(password: string): Promise<string> {
@@ -13,9 +14,11 @@ export interface JwtPayload {
     userId: number;
     email: string;
     role: string; // mofeeda 3an enha teb2a query fel db
-    // restaurantId?: number;
-    // restaurantRole?: string;
-    // branchIds?: number[];
+    // only for restaurant users. order-service reads these from the SAME token
+    // (requireRestaurantMember / requireBranchAccess) so it never has to call core per request
+    restaurantId?: number;
+    restaurantRole?: string;
+    branchIds?: number[];
 }
 export function createAccessToken(payload: JwtPayload){
     // const payload = await jwt.verify(payload, process.env.ACCESS_TOKEN_SECRET as string);
@@ -48,11 +51,19 @@ export function hashOTP(otp: string){
     return crypto.createHash("sha256").update(otp).digest("hex");
 }
 
+// expired / tampered token -> 401 (jwt.verify throws its own error, which became a 500)
 export function verifyAccessToken(token: string): JwtPayload{
-    console.log('Secret used for verify:', env.jwt.accessSecret);
-    return jwt.verify(token, env.jwt.accessSecret) as JwtPayload;
+    try{
+        return jwt.verify(token, env.jwt.accessSecret) as JwtPayload;
+    }catch{
+        throw NotAuthenticated;
+    }
 }
 
 export function verifyRefreshToken(token: string): JwtPayload{
-    return jwt.verify(token, env.jwt.refreshSecret) as JwtPayload;
+    try{
+        return jwt.verify(token, env.jwt.refreshSecret) as JwtPayload;
+    }catch{
+        throw NotAuthenticated;
+    }
 }

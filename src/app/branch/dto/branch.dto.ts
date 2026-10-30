@@ -42,6 +42,12 @@ export class CreateBranchDTO {
     @IsEnum(Currency)
     currency?: Currency;
 
+    // minor units: 1500 = 15.00 in the branch currency
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    deliveryFee?: number;
+
 }
 
 
@@ -98,4 +104,15 @@ export class UpdateBranchDTO {
     @IsEnum(Currency)
     currency?: Currency;
 
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    deliveryFee?: number;
+
+}
+
+// admin only: switch a branch on/off. Off -> order-service rejects new orders for it
+export class UpdateBranchStatusDTO {
+    @IsBoolean()
+    isActive!: boolean;
 }

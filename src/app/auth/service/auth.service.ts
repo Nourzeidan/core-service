@@ -1,6 +1,8 @@
 import { RegisterDTO, LoginDTO, ForgetPassDTO, ResetPasswordDTO } from "../dto/auth.dto.js";
-import { findExistingUserByEmailOrPhone, findUserByEmail, findExistingUserByEmail, updateUserPassword } from "../../user/repository/users.repo.js";
-import { createAccessToken, createRefreshToken, hashPassword, comparePassword, generateOTP, hashOTP } from "../utils.js";
+import { findExistingUserByEmailOrPhone, findUserByEmail, findExistingUserByEmail, updateUserPassword, findUserById } from "../../user/repository/users.repo.js";
+import { createAccessToken, createRefreshToken, hashPassword, comparePassword, generateOTP, hashOTP, verifyRefreshToken, type JwtPayload } from "../utils.js";
+import type { User } from "../../user/entity/user.entity.js";
+import { NotAuthenticated } from "../../../lib/auth/errors.js";
 import { SystemRole } from "../../user/enums.js";
 import { UserAlreadyExistsError, CannotSignupAsSystemAdmin, InvalidCredentialsError, InvalidOTPError, RestaurantDataRequiredError } from "../errors.js";
 import { createPasswordReset, findLatestPasswordResetByUserid, updatePasswordResetConsumedAt } from "../repository/password-reset.repo.js";
@@ -111,24 +113,7 @@ export class AuthService {
             throw InvalidCredentialsError;
         }
 
-        let restaurantMemberInfo = null;
-        if(user.systemRole == SystemRole.RESTAURANT_USER) {
-            const memberData = await findRestaurantMemberWithRole(user.id);
-            if(!memberData) throw MemberNotFoundError;
-            const branchIds = await findBranchByMemberId(memberData.member.id);
-            restaurantMemberInfo = {
-                restaurantId: memberData.member.restaurantId,
-                restaurantRole: memberData.member.roleName,
-                branchIds
-            }
-        }
-
-        const payload = {
-            userId: user.id,
-            email: user.email,
-            role: user.systemRole,
-            ...restaurantMemberInfo
-        };
+        const payload = await this.buildTokenPayload(user);
         const accessToken = createAccessToken(payload);
         const refreshToken = createRefreshToken(payload);
 
@@ -213,7 +198,44 @@ export class AuthService {
         const user = await this.resetPassword(data);
         await activateMemberByUserId(user.id);
     }
-    
+
+    // new access token from the refresh token (access lives 1h, refresh 7d -> no re-login every hour).
+    // the payload is rebuilt from the DB, not copied from the old token, so a changed role,
+    // removed branch or deleted user is picked up on the next refresh
+    refresh = async (refreshToken: string | undefined) => {
+        if(!refreshToken){
+            throw NotAuthenticated;
+        }
+        const {userId} = verifyRefreshToken(refreshToken);
+
+        const user = await findUserById(userId);
+        if(!user){
+            throw NotAuthenticated;
+        }
+
+        const payload = await this.buildTokenPayload(user);
+        return {accessToken: createAccessToken(payload)};
+    }
+
+    // claims put in every access token. restaurant users also get their restaurant, role and
+    // branches; order-service authorizes with them without calling core on each request
+    private buildTokenPayload = async (user: User): Promise<JwtPayload> => {
+        const payload: JwtPayload = {
+            userId: user.id,
+            email: user.email,
+            role: user.systemRole
+        };
+
+        if(user.systemRole == SystemRole.RESTAURANT_USER) {
+            const memberData = await findRestaurantMemberWithRole(user.id);
+            if(!memberData) throw MemberNotFoundError;
+            payload.restaurantId = Number(memberData.member.restaurantId);
+            payload.restaurantRole = memberData.member.roleName;
+            payload.branchIds = await findBranchByMemberId(memberData.member.id);
+        }
+        return payload;
+    }
+
 
 }
 

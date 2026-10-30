@@ -50,6 +50,16 @@ export class AddressController {
         }
     }
 
+    // internal (order-service): raw object, no {data: ...} wrapper
+    findOwnedAddress = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await this.addressService.findOwnedAddress(Number(req.params.userId), Number(req.params.id));
+            res.status(200).json(result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
     findAllAddresses = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.userId;

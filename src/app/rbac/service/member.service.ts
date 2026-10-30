@@ -12,7 +12,7 @@ import { countBranchesByIdsAndRestaurant, setMemberBranches } from "../repo/memb
 import { generateOTP, hashOTP } from "../../auth/utils.js";
 import { createPasswordReset } from "../../auth/repository/password-reset.repo.js";
 import { MinsToMS } from "../../../pkg/utils/time.js";
-import { getPermissionsDetailsByRoleName } from "../repo/permission.repo.js";
+import { getPermissionByRoleName, getPermissionsDetailsByRoleName } from "../repo/permission.repo.js";
 import type {Knex} from "knex";
 import { UserService } from "../../user/service/user.service.js";
 import type { IEmailProvider } from "../../../pkg/email/email.interface.js";
@@ -186,5 +186,11 @@ export class MemberService {
     async getRolePermissions(roleName: string) {
             const permissions=await getPermissionsDetailsByRoleName(roleName);
             return {role: roleName, permissions};
+    }
+
+    // flat list for order-service's permission cache: ["order:order:read", ...]
+    // (same "<resource>:<action>" strings rbac() checks with hasPermissions)
+    async getRolePermissionNames(roleName: string): Promise<string[]> {
+        return getPermissionByRoleName(roleName);
     }
 }

@@ -13,7 +13,7 @@ const branchController = container.resolve<BranchController>(TOKENS.BranchContro
 branchRouter.get('/branches/nearby', withCache(),branchController.findNearBy);
 branchRouter.post('/restaurants/:restaurantId/branches',
     authenticate,
-    requireRestaurantMember('restaurantId'), 
+    requireRestaurantMember('restaurantId'),
     rbac({resource:"core:branch", action:"create"}),
     branchController.create);
 
@@ -24,3 +24,11 @@ branchRouter.patch("/branches/:id",
     requireBranchAccess('id'),
     rbac({resource:"core:branch", action:"update"}),
     branchController.update);
+
+// system admin only (checked in the service)
+branchRouter.patch("/branches/:id/status", authenticate, branchController.updateStatus);
+
+// service-to-service, mounted under /api/internal (api-key checked once in src/routes.ts)
+export const branchInternalRouter = Router();
+
+branchInternalRouter.get("/branches/:id", branchController.findById);

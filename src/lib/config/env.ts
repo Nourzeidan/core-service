@@ -26,7 +26,20 @@ const envSchema = z.object({
   MAILJET_API_KEY: z.string(),
   MAILJET_SECRET_KEY: z.string(),
   MAILJET_FROM_EMAIL: z.string(),
-  MAILJET_FROM_NAME: z.string()
+  MAILJET_FROM_NAME: z.string(),
+
+  // shared secret order-service sends in the `api-key` header on every /api/internal/* call.
+  // empty = internal API is closed (requireInternalApiKey answers 503), so the server can still boot without it
+  INTERNAL_API_KEY: z.string().default(""),
+
+  // RabbitMQ: only the outbox worker (src/worker.ts) connects, the http server never publishes directly
+  RABBITMQ_URL: z.string().default("amqp://guest:guest@localhost:5672"),
+  // topic exchange order-service binds its queue to (must match order-service RABBITMQ_CORE_EVENTS_EXCHANGE)
+  RABBITMQ_CORE_EVENTS_EXCHANGE: z.string().default("core.events"),
+  // croner pattern with seconds: "* * * * * *" = drain the outbox every second
+  OUTBOX_DRAIN_CRON: z.string().default("* * * * * *"),
+  // max outbox rows published per drain pass
+  OUTBOX_BATCH_SIZE: z.string().default("50")
 });
 
 const parsed = envSchema.parse(process.env);
@@ -72,5 +85,14 @@ export const env = {
             fromEmail: parsed.MAILJET_FROM_EMAIL,
             fromName: parsed.MAILJET_FROM_NAME
         }
+    },
+    internal: {
+        apiKey: parsed.INTERNAL_API_KEY,
+    },
+    rabbit: {
+        url: parsed.RABBITMQ_URL,
+        exchange: parsed.RABBITMQ_CORE_EVENTS_EXCHANGE,
+        drainCron: parsed.OUTBOX_DRAIN_CRON,
+        batchSize: Number(parsed.OUTBOX_BATCH_SIZE),
     }
 }

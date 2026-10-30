@@ -41,3 +41,7 @@ memberRouter.put('/restaurants/:restaurantId/members/:memberId/branches',
     rbac({resource: "core:member", action: 'update'}),
     memberController.updateMemberBranches);
 
+// service-to-service, mounted under /api/internal (api-key checked once in src/routes.ts)
+export const memberInternalRouter = Router();
+
+memberInternalRouter.get('/roles/:roleName/permissions', memberController.getRolePermissionNames);

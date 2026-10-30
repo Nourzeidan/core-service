@@ -28,4 +28,15 @@ export class UserController {
             next(error);
         }
     }
+
+    // internal (order-service): GET /internal/users?ids=1,2,3 -> [{id, name, phone}]
+    findContacts = async (req:Request, res: Response, next: NextFunction) => {
+        try{
+            const ids = String(req.query.ids ?? "").split(",").filter(id => id.trim().length > 0).map(Number);
+            const result = await this.userService.findContactsByIds(ids);
+            res.status(200).json(result);
+        }catch(error){
+            next(error);
+        }
+    }
 }

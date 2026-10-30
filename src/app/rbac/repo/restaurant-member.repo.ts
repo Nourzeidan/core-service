@@ -54,7 +54,7 @@ export async function activateMemberByUserId(userId: number, conn:Knex=db ): Pro
 
 
 export async function findRestaurantMemberWithRole(userId: number, conn: Knex = db):
- Promise<{ member: RestaurantMember; roleName: string }> {
+ Promise<{ member: RestaurantMember; roleName: string } | null> {
     const row: any = await conn("restaurant_members as rm")
         .select(
             ...RESTAURANT_MEMBER_COLUMNS.map(col => `rm.${col}`),
@@ -65,6 +65,8 @@ export async function findRestaurantMemberWithRole(userId: number, conn: Knex = 
         .andWhere("rm.status", "active")
         .first();
 
+    // no active membership (e.g. invite not accepted yet) -> null, callers throw MemberNotFoundError
+    if(!row) return null;
     return {
         member: toEntity(row),
         roleName: row.roleName

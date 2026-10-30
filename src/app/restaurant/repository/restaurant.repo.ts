@@ -72,8 +72,9 @@ export async function updateRestaurant(data: Partial<Restaurant>, id: number): P
 
 }  
 
-export async function updateRestaurantStatus(data: Partial<Restaurant>, id: number): Promise<Restaurant> {
-    const [row] = await db("restaurants")
+// conn: pass the service's trx so the outbox event commits together with the status change
+export async function updateRestaurantStatus(data: Partial<Restaurant>, id: number, conn: Knex = db): Promise<Restaurant> {
+    const [row] = await conn("restaurants")
     .update({
         status: data.status,
         status_updated_at: data.statusUpdatedAt ?? new Date()

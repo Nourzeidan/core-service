@@ -13,3 +13,7 @@ addressRouter.patch("/addresses/:id", authenticate, addressController.updateAddr
 addressRouter.delete("/addresses/:id", authenticate, addressController.deleteAddress);
 
 export {addressRouter};
+// service-to-service, mounted under /api/internal (api-key checked once in src/routes.ts)
+export const addressInternalRouter = Router();
+
+addressInternalRouter.get("/customers/:userId/addresses/:id", addressController.findOwnedAddress);

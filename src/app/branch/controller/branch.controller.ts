@@ -1,7 +1,7 @@
 import { injectable, inject } from "tsyringe";
 import { validateBody } from "../../../lib/validation/validate.js";
 import type { SystemRole } from "../../user/enums.js";
-import { CreateBranchDTO, UpdateBranchDTO } from "../dto/branch.dto.js";
+import { CreateBranchDTO, UpdateBranchDTO, UpdateBranchStatusDTO } from "../dto/branch.dto.js";
 import { createBranch } from "../repository/branch.repo.js";
 import {  BranchService } from "../service/branch.service.js";
 import type { NextFunction, Request, Response } from "express";
@@ -45,6 +45,26 @@ export class BranchController {
             const data = await validateBody(UpdateBranchDTO, req.body);
             const results = await this.branchService.update(Number(req.user?.userId),Number(req.params.id), data);
             res.status(200).json(results);
+        }catch(err){
+            next(err);
+        }
+    }
+
+    updateStatus = async(req: Request, res:Response, next: NextFunction) => {
+        try {
+            const data = await validateBody(UpdateBranchStatusDTO, req.body);
+            const results = await this.branchService.updateStatus(req.user?.role as SystemRole, Number(req.params.id), data);
+            res.status(200).json(results);
+        }catch(err){
+            next(err);
+        }
+    }
+
+    // internal (order-service): raw object, no {data: ...} wrapper - order-service reads the body as-is
+    findById = async(req: Request, res:Response, next: NextFunction) => {
+        try {
+            const branch = await this.branchService.findById(Number(req.params.id));
+            res.status(200).json(branch);
         }catch(err){
             next(err);
         }

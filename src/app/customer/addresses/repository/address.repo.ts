@@ -106,3 +106,12 @@ export async function resetDefaultAddress(userId: number) {
         .where("user_id", userId)
         .update({ is_default: false })
 }
+
+// address only if it belongs to this user (ownership checked in the query itself)
+export async function findAddressByIdAndUser(id: number, userId: number): Promise<CustomerAddress | null> {
+    const row = await db("customer_addresses")
+        .select(ADDRESS_COLUMNS)
+        .where({ id, user_id: userId })
+        .first();
+    return row ? toEntity(row) : null;
+}

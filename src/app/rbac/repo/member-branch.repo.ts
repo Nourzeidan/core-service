@@ -33,12 +33,14 @@ export async function setMemberBranches(memberId: number, rows: MemberBranch[], 
     }
 }
 
-export async function findBranchByMemberId(memberId: number): Promise<string[]> {
+// numbers, not strings: pg returns BIGINT as a string, and these ids go into the JWT where
+// requireBranchAccess (here and in order-service) does branchIds.includes(<number>)
+export async function findBranchByMemberId(memberId: number): Promise<number[]> {
     const rows = await db("member_branches")
     .select("branch_id")
     .where("member_id", memberId);
 
-    return rows.map(row=>row.branch_id);
+    return rows.map(row=>Number(row.branch_id));
 }
 
 export async function countBranchesByIdsAndRestaurant(branchIds: number[], restaurantId: number, conn: Knex=db ): Promise<number> {

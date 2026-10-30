@@ -17,6 +17,7 @@ export class Branch {
     deliveryRadius: number;
     currency: Currency | undefined;
     commission?: number;
+    deliveryFee: number; // minor units (1500 = 15.00)
 
     constructor(data: Partial<Branch>) {
         this.id = data.id!;
@@ -35,5 +36,6 @@ export class Branch {
         this.deliveryRadius = data.deliveryRadius!;
         this.currency = data.currency!;
         this.commission = data.commission ?? 0;
+        this.deliveryFee = data.deliveryFee ?? 0;
     }
 }

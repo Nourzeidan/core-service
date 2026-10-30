@@ -1,6 +1,6 @@
 import type { UpdateUserrDTO } from "../dto/user.dto.js";
-import { UserNotFoundError } from "../errors.js";
-import { createUser, findExistingUserByEmailOrPhone, findUserById, updateUser } from "../repository/users.repo.js"
+import { InvalidUserIdsError, UserNotFoundError } from "../errors.js";
+import { createUser, findExistingUserByEmailOrPhone, findUserById, findUsersByIds, updateUser } from "../repository/users.repo.js"
 import { SystemRole } from "../enums.js";
 import { UserAlreadyExistsError } from "../../auth/errors.js";
 import { hashPassword } from "../../auth/utils.js";
@@ -82,6 +82,16 @@ export class UserService {
             }
         }
 
-        
+
+    }
+
+    // order-service shows the delivery agent's name/phone on an order.
+    // only these 3 fields leave core (no email, no password hash)
+    findContactsByIds = async(ids: number[]) => {
+        if(ids.length === 0 || ids.length > 100 || ids.some(id => !Number.isInteger(id) || id <= 0)){
+            throw InvalidUserIdsError;
+        }
+        const users = await findUsersByIds([...new Set(ids)]);
+        return users.map(user => ({id: Number(user.id), name: user.name, phone: user.phone}));
     }
 }

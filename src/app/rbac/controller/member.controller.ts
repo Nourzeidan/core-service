@@ -72,4 +72,14 @@ export class MemberController {
         }
     }
 
+    // internal (order-service): plain string array
+    getRolePermissionNames = async(req: Request, res: Response, next: NextFunction) => {
+        try{
+            const result = await this.memberService.getRolePermissionNames(String(req.params.roleName));
+            res.status(200).json(result);
+        }catch(err){
+            next(err);
+        }
+    }
+
 }

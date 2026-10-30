@@ -109,3 +109,10 @@ export async function updateUser(user: Partial <User>, id: number): Promise<User
     if (!updatedUser) return null;
     return toEntity(updatedUser);
 }
+// batch lookup (one query instead of one per id). deleted users are left out
+export async function findUsersByIds(ids: number[]): Promise<User[]> {
+    const users = await db('users').select(USER_COLUMNS)
+        .whereIn('id', ids)
+        .whereNull('deleted_at');
+    return users.map(toEntity);
+}

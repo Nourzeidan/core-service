@@ -28,3 +28,9 @@ productRouter.patch('/products/:id',
     requireBranchAccess('branchId'),
     rbac({resource:"core:product", action:"update"}),
     productController.update);
+// service-to-service, mounted under /api/internal (api-key checked once in src/routes.ts)
+export const productInternalRouter = Router();
+
+productInternalRouter.post('/branches/:id/products/batch', productController.findBranchProducts);
+productInternalRouter.post('/branches/:id/stock/reserve', productController.reserveStock);
+productInternalRouter.post('/branches/:id/stock/release', productController.releaseStock);

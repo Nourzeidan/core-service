@@ -4,7 +4,12 @@ import { Restaurant } from "../entity/restaurant.entity.js";
 import { RestaurantStatus } from "../enums.js";
 import { createRestaurant, findAllRestaurants, findRestaurantById, updateRestaurant, updateRestaurantStatus } from "../repository/restaurant.repo.js";
 import { NotAuthorizedError, RestaurantNotFoundError } from "../errors.js";
-import type { UpdateRestaurantDTO, UpdateRestaurantStatusDTO } from "../dto/restaurant.dto.js";
+import type { CreateRestaurantDTO, UpdateRestaurantDTO, UpdateRestaurantStatusDTO } from "../dto/restaurant.dto.js";
+import { db } from "../../../lib/knex/knex.js";
+import { insertOutboxEvent } from "../../../lib/events/outbox.repo.js";
+import { EVENT_TYPES } from "../../../lib/events/event-types.js";
+import { unAuthorizedError } from "../../../lib/auth/errors.js";
+import type { MemberService } from "../../rbac/service/member.service.js";
 import { findUserById } from "../../user/repository/users.repo.js";
 import { UserNotFoundError } from "../../user/errors.js";
 import { SystemRole } from "../../user/enums.js";
@@ -16,7 +21,8 @@ import type { FilterParams } from "../../../lib/http/pagination/cursor-paginatio
 
 @injectable()
 export class RestaurantService {
-    constructor(@inject(TOKENS.UserService) private readonly userService: UserService){}
+    constructor(@inject(TOKENS.UserService) private readonly userService: UserService,
+                @inject(TOKENS.MemberService) private readonly memberService: MemberService){}
     create = async (userId: number, data: RegisterRestaurantDTO, trx: Knex)=>{
         const now = new Date();
         const restaurant = new Restaurant({
@@ -89,10 +95,29 @@ export class RestaurantService {
         }
 
         const now = new Date();
-        const updated = await updateRestaurantStatus({
-            status: data.status,
-            statusUpdatedAt: now
-        }, restaurantId);
+        // suspending must reach order-service (it stops taking orders and alerts admins),
+        // so the status change and its event are committed together
+        const trx = await db.transaction();
+        let updated: Restaurant;
+        try{
+            updated = await updateRestaurantStatus({
+                status: data.status,
+                statusUpdatedAt: now
+            }, restaurantId, trx);
+
+            if(data.status === RestaurantStatus.SUSPENDED){
+                await insertOutboxEvent({
+                    aggregateType: "restaurants",
+                    aggregateId: restaurantId,
+                    eventType: EVENT_TYPES.RESTAURANT_SUSPENDED,
+                    payload: {restaurantId}
+                }, trx);
+            }
+            await trx.commit();
+        }catch(error){
+            await trx.rollback();
+            throw error;
+        }
 
          return {
             message: "Restaurant updated",
@@ -102,6 +127,61 @@ export class RestaurantService {
                 status: updated!.status,
                 statusUpdatedAt: updated!.statusUpdatedAt
             }
+        };
+    }
+
+    // system admin onboards a restaurant: owner user + restaurant + owner membership, all or nothing.
+    // (restaurant users can still self-register through /auth/register; those start as PENDING,
+    // these start ACTIVE because an admin created them)
+    createWithOwner = async(userRole: SystemRole, data: CreateRestaurantDTO) => {
+        if(userRole !== SystemRole.ADMIN){
+            throw unAuthorizedError;
+        }
+
+        const now = new Date();
+        const trx = await db.transaction();
+        try{
+            const owner = await this.userService.create({
+                email: data.owner.email,
+                phone: data.owner.phone,
+                name: data.owner.name,
+                password: data.owner.password,
+                systemRole: SystemRole.RESTAURANT_USER
+            }, trx);
+
+            const restaurant = await createRestaurant({
+                ownerId: owner.id,
+                name: data.name,
+                logoURL: data.logoURL ?? "",   // logo_url is NOT NULL in the table
+                primaryCountry: data.primaryCountry,
+                status: RestaurantStatus.ACTIVE,
+                createdAt: now,
+                updatedAt: now,
+                statusUpdatedAt: now
+            }, trx);
+
+            await this.memberService.createOwnerMember(restaurant.id, owner.id, trx);
+            await trx.commit();
+
+            return {
+                message: "Restaurant created",
+                restaurant,
+                owner: {id: owner.id, email: owner.email, name: owner.name}
+            };
+        }catch(error){
+            await trx.rollback();
+            throw error;
+        }
+    }
+
+    // snapshot for order-service (GET /api/internal/restaurants/:id)
+    findSummaryById = async(id: number) => {
+        const restaurant = await this.findById(id); // throws RestaurantNotFoundError (404)
+        return {
+            id: Number(restaurant.id),
+            ownerId: Number(restaurant.ownerId),
+            name: restaurant.name,
+            status: restaurant.status
         };
     }
 }
