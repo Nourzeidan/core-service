@@ -2,7 +2,7 @@ import type { Knex } from "knex";
 import { RegisterRestaurantDTO } from "../../auth/dto/auth.dto.js";
 import { Restaurant } from "../entity/restaurant.entity.js";
 import { RestaurantStatus } from "../enums.js";
-import { createRestaurant, findAllRestaurants, findRestaurantById, updateRestaurant, updateRestaurantStatus } from "../repository/restaurant.repo.js";
+import { createRestaurant, findAllRestaurants, findRestaurantById, findRestaurantsByIds, updateRestaurant, updateRestaurantStatus } from "../repository/restaurant.repo.js";
 import { NotAuthorizedError, RestaurantNotFoundError } from "../errors.js";
 import type { CreateRestaurantDTO, UpdateRestaurantDTO, UpdateRestaurantStatusDTO } from "../dto/restaurant.dto.js";
 import { db } from "../../../lib/knex/knex.js";
@@ -175,6 +175,17 @@ export class RestaurantService {
     }
 
     // snapshot for order-service (GET /api/internal/restaurants/:id)
+    // many restaurants in ONE query (GET /api/internal/restaurants?ids=1,2,3); unknown ids are left out
+    findSummariesByIds = async(ids: number[]) => {
+        const restaurants = await findRestaurantsByIds(ids);
+        return restaurants.map(restaurant => ({
+            id: Number(restaurant.id),
+            ownerId: Number(restaurant.ownerId),
+            name: restaurant.name,
+            status: restaurant.status
+        }));
+    }
+
     findSummaryById = async(id: number) => {
         const restaurant = await this.findById(id); // throws RestaurantNotFoundError (404)
         return {

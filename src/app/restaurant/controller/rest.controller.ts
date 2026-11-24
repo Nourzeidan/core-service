@@ -7,6 +7,8 @@ import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../../../lib/di/tokens.js";
 import { parseFilters, parsePaginationQuery } from "../../../lib/http/pagination/parse-query.js";
 import { sendPaginated } from "../../../lib/http/response.js";
+import { parseIdList } from "../../../lib/http/parse-ids.js";
+import { InvalidRestaurantIdsError } from "../errors.js";
 
 @injectable()
 export class RestaurantController {
@@ -57,6 +59,19 @@ export class RestaurantController {
     }
 
     // internal (order-service): raw object, no {data: ...} wrapper
+    // internal: GET /internal/restaurants?ids=1,2,3 -> [summary, ...] (one query)
+    getSummariesByIds = async(req:Request, res: Response, next:NextFunction) => {
+        try{
+            const ids = parseIdList(req.query.ids);
+            if(!ids){
+                throw InvalidRestaurantIdsError;
+            }
+            res.status(200).json(await this.restaurantService.findSummariesByIds(ids));
+        }catch(err){
+            next(err);
+        }
+    }
+
     getSummaryById = async(req:Request, res: Response, next:NextFunction) => {
         try{
             const result = await this.restaurantService.findSummaryById(Number(req.params.id));

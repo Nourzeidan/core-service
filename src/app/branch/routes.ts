@@ -27,8 +27,10 @@ branchRouter.patch("/branches/:id",
 
 // system admin only (checked in the service)
 branchRouter.patch("/branches/:id/status", authenticate, branchController.updateStatus);
+branchRouter.patch("/branches/:id/commission", authenticate, branchController.updateCommission);
 
 // service-to-service, mounted under /api/internal (api-key checked once in src/routes.ts)
 export const branchInternalRouter = Router();
 
+branchInternalRouter.get("/branches", branchController.findByIds);          // ?ids=1,2,3 (batch)
 branchInternalRouter.get("/branches/:id", branchController.findById);

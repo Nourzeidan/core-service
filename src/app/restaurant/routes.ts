@@ -23,4 +23,5 @@ restaurantRouter.patch("/:id/status", authenticate, restaurantController.updateS
 // service-to-service, mounted under /api/internal (api-key checked once in src/routes.ts)
 export const restaurantInternalRouter = Router();
 
+restaurantInternalRouter.get('/restaurants', restaurantController.getSummariesByIds);   // ?ids=1,2,3 (batch)
 restaurantInternalRouter.get('/restaurants/:id', restaurantController.getSummaryById);

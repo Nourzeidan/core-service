@@ -34,3 +34,4 @@ export const productInternalRouter = Router();
 productInternalRouter.post('/branches/:id/products/batch', productController.findBranchProducts);
 productInternalRouter.post('/branches/:id/stock/reserve', productController.reserveStock);
 productInternalRouter.post('/branches/:id/stock/release', productController.releaseStock);
+productInternalRouter.post('/stock/release', productController.releaseStockBatch);         // many orders, one call

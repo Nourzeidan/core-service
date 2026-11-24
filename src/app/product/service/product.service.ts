@@ -6,11 +6,12 @@ import { UserNotFoundError } from "../../user/errors.js";
 import { unAuthorizedError } from "../../../lib/auth/errors.js";
 import { RestaurantNotFoundError } from "../../restaurant/errors.js";
 import { SystemRole } from "../../user/enums.js";
-import { CreateProductDTO, UpdateProductDTO, type ReleaseStockDTO, type ReserveStockDTO } from "../dto/product.dto.js";
-import { insertOutboxEvent } from "../../../lib/events/outbox.repo.js";
+import { CreateProductDTO, UpdateProductDTO, type ReleaseStockBatchDTO, type ReleaseStockDTO, type ReserveStockDTO } from "../dto/product.dto.js";
+import { insertOutboxEvent, insertOutboxEvents } from "../../../lib/events/outbox.repo.js";
 import { EVENT_TYPES } from "../../../lib/events/event-types.js";
-import { changeBranchStock, findBranchProductsByIds, lockBranchStock } from "../repo/product-branch.repo.js";
-import { createReservations, findReservationsByOrder, markReservationReleased } from "../repo/stock-reservation.repo.js";
+import { changeBranchStocks, findBranchProductsByIds, lockBranchStock } from "../repo/product-branch.repo.js";
+import { createReservations, findReservationsByOrder, findReservationsByOrders, markReservationsReleased } from "../repo/stock-reservation.repo.js";
+import type { Knex } from "knex";
 import { outOfStockError } from "../errors.js";
 import { ReservationStatus } from "../enums.js";
 import { createCategory } from "../repo/product-category.repo.js";
@@ -269,15 +270,10 @@ export class ProductService {
             }
 
             const now = new Date();
-            for (const [productId, requested] of quantities) {
-                const {stock, isAvailable} = await changeBranchStock(branchId, productId, -requested, trx);
-                await insertOutboxEvent({
-                    aggregateType: "product_branch_details",
-                    aggregateId: `${branchId}:${productId}`,
-                    eventType: EVENT_TYPES.PRODUCT_STOCK_CHANGED,
-                    payload: {branchId, productId, stock, isAvailable}
-                }, trx);
-            }
+            // whole cart: ONE stock update + ONE outbox insert (not one of each per product)
+            const changed = await changeBranchStocks(
+                [...quantities].map(([productId, requested]) => ({branchId, productId, delta: -requested})), trx);
+            await insertStockChangedEvents(changed, trx);
             await createReservations(productIds.map(productId => ({
                 orderPublicId: data.orderPublicId,
                 branchId,
@@ -301,24 +297,30 @@ export class ProductService {
     // Gives the stock of a cancelled / rejected order back.
     // Safe to retry: released reservations are skipped, an unknown order is a no-op.
     releaseStock = async (branchId: number, data: ReleaseStockDTO) => {
+        await this.releaseStockBatch({orders: [{branchId, orderPublicId: data.orderPublicId}]});
+    }
+
+    // Gives the stock of many cancelled orders back in ONE transaction (order-service's payment sweep
+    // cancels up to 100 at a time): one locked read of their reservations, one stock update for all
+    // products, one outbox insert, one reservation update. Safe to retry: released ones are skipped.
+    releaseStockBatch = async (data: ReleaseStockBatchDTO) => {
         const trx = await db.transaction();
         try {
-            const reservations = await findReservationsByOrder(data.orderPublicId, branchId, trx, true);
-
-            for (const reservation of reservations) {
-                if (reservation.status !== ReservationStatus.RESERVED) {
-                    continue;
+            const reservations = (await findReservationsByOrders(data.orders, trx, true))
+                .filter(reservation => reservation.status === ReservationStatus.RESERVED);
+            if (reservations.length > 0) {
+                // one row per (branch, product), quantities summed across the orders
+                const deltas = new Map<string, {branchId: number; productId: number; delta: number}>();
+                for (const reservation of reservations) {
+                    const key = `${reservation.branchId}:${reservation.productId}`;
+                    const entry = deltas.get(key) ?? {branchId: reservation.branchId, productId: reservation.productId, delta: 0};
+                    entry.delta += reservation.quantity;
+                    deltas.set(key, entry);
                 }
-                const {stock, isAvailable} = await changeBranchStock(branchId, reservation.productId, reservation.quantity, trx);
-                await markReservationReleased(reservation.id, trx);
-                await insertOutboxEvent({
-                    aggregateType: "product_branch_details",
-                    aggregateId: `${branchId}:${reservation.productId}`,
-                    eventType: EVENT_TYPES.PRODUCT_STOCK_CHANGED,
-                    payload: {branchId, productId: reservation.productId, stock, isAvailable}
-                }, trx);
+                const changed = await changeBranchStocks([...deltas.values()], trx);
+                await insertStockChangedEvents(changed, trx);
+                await markReservationsReleased(reservations.map(reservation => reservation.id), trx);
             }
-
             await trx.commit();
         } catch (error) {
             await trx.rollback();
@@ -330,3 +332,13 @@ export class ProductService {
 
 // postgres error code for a UNIQUE constraint violation
 const UNIQUE_VIOLATION = "23505";
+
+// one product.stock.changed event per changed (branch, product), all in ONE insert
+async function insertStockChangedEvents(changed: {branchId: number; productId: number; stock: number; isAvailable: boolean}[], trx: Knex) {
+    await insertOutboxEvents(changed.map(({branchId, productId, stock, isAvailable}) => ({
+        aggregateType: "product_branch_details",
+        aggregateId: `${branchId}:${productId}`,
+        eventType: EVENT_TYPES.PRODUCT_STOCK_CHANGED,
+        payload: {branchId, productId, stock, isAvailable}
+    })), trx);
+}

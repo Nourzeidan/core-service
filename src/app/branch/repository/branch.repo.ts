@@ -126,6 +126,18 @@ export async function updateBranchStatus(isActive: boolean, id: number, conn: Kn
     return row ? toEntity(row) : null;
 }
 
+export async function updateBranchCommission(commissionBps: number, id: number, conn: Knex = db): Promise<Branch | null> {
+    const [row] = await conn("restaurant_branches")
+    .update({
+        commission: commissionBps,
+        updated_at: new Date()
+    })
+    .where("id", id)
+    .returning(BRANCH_COLUMNS);
+
+    return row ? toEntity(row) : null;
+}
+
 export async function findBranchById(id: number): Promise<Branch | null> {
     const [row] = await db("restaurant_branches")
         .select(BRANCH_COLUMNS)
@@ -138,3 +150,12 @@ export async function findBranchById(id: number): Promise<Branch | null> {
     return toEntity(row);
 }
 
+// internal batch read (GET /api/internal/branches?ids=): ONE query for many branches.
+// unknown ids are simply absent from the result.
+export async function findBranchesByIds(ids: number[], conn: Knex = db): Promise<Branch[]> {
+    if (ids.length === 0) {
+        return [];
+    }
+    const rows = await conn("restaurant_branches").select(BRANCH_COLUMNS).whereIn("id", ids);
+    return rows.map(toEntity);
+}

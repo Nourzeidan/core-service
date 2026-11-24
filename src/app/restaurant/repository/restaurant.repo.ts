@@ -94,3 +94,12 @@ export async function findRestaurantById(id: number): Promise<Restaurant | null>
     console.log(row);
     return toEntity(row);
 }
+
+// internal batch read (GET /api/internal/restaurants?ids=): ONE query; unknown ids are absent
+export async function findRestaurantsByIds(ids: number[], conn: Knex = db): Promise<Restaurant[]> {
+    if (ids.length === 0) {
+        return [];
+    }
+    const rows = await conn("restaurants").select(RESTAURANT_COLUMNS).whereIn("id", ids);
+    return rows.map(toEntity);
+}

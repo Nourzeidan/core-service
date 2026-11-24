@@ -1,8 +1,8 @@
 import { SystemRole } from "../../user/enums.js";
-import { createBranch, findNearbyBranches, findBranchesByRestaurant, updateBranch, findBranchById, updateBranchStatus } from "../repository/branch.repo.js";
+import { createBranch, findNearbyBranches, findBranchesByRestaurant, updateBranch, findBranchById, updateBranchStatus, updateBranchCommission, findBranchesByIds } from "../repository/branch.repo.js";
 import { findRestaurantById } from "../../restaurant/repository/restaurant.repo.js";
 import { unAuthorizedError } from "../../../lib/auth/errors.js";
-import type { CreateBranchDTO, UpdateBranchDTO, UpdateBranchStatusDTO } from "../dto/branch.dto.js";
+import type { CreateBranchDTO, UpdateBranchDTO, UpdateBranchStatusDTO, UpdateBranchCommissionDTO } from "../dto/branch.dto.js";
 import { db } from "../../../lib/knex/knex.js";
 import { insertOutboxEvent } from "../../../lib/events/outbox.repo.js";
 import { EVENT_TYPES } from "../../../lib/events/event-types.js";
@@ -79,7 +79,8 @@ export class BranchService {
             throw UserNotFoundError;
         }
 
-        const isOwner = restaurant.ownerId === userId;
+        // owner_id is BIGINT -> pg returns it as a string ("17"); the JWT userId is a number (17)
+        const isOwner = Number(restaurant.ownerId) === Number(userId);
         const isAdmin = user.systemRole === SystemRole.ADMIN;
 
         if (!isOwner && !isAdmin) {
@@ -177,6 +178,39 @@ export class BranchService {
         }
     }
 
+    // system admin only. branch.updated makes order-service drop its cached branch, so the next
+    // settlement uses the new rate. Orders delivered before this keep the commission they were settled with
+    updateCommission = async (userRole: SystemRole, branchId: number, data: UpdateBranchCommissionDTO) => {
+        if (userRole !== SystemRole.ADMIN) {
+            throw unAuthorizedError;
+        }
+        await findBranchById(branchId); // throws BranchNotFoundError
+
+        const trx = await db.transaction();
+        try {
+            const updated = await updateBranchCommission(data.commissionBps, branchId, trx);
+            if (!updated) {
+                throw BranchNotFoundError;
+            }
+
+            await insertOutboxEvent({
+                aggregateType: "restaurant_branches",
+                aggregateId: branchId,
+                eventType: EVENT_TYPES.BRANCH_UPDATED,
+                payload: {branchId}
+            }, trx);
+            await trx.commit();
+
+            return {
+                message: "Branch commission updated",
+                branch: {id: Number(updated.id), commissionBps: Number(updated.commission ?? 0), updatedAt: updated.updatedAt}
+            };
+        } catch (error) {
+            await trx.rollback();
+            throw error;
+        }
+    }
+
     // snapshot order-service needs at checkout (GET /api/internal/branches/:id).
     // pg returns BIGINT and DECIMAL columns as strings -> converted to numbers here
     findById = async (branchId: number) => {
@@ -184,19 +218,31 @@ export class BranchService {
         if (!branch) {
             throw BranchNotFoundError;
         }
-        return {
-            id: Number(branch.id),
-            restaurantId: Number(branch.restaurantId),
-            countryCode: branch.countryCode,
-            currency: branch.currency,
-            lat: Number(branch.lat),
-            lng: Number(branch.long),
-            isActive: branch.isActive,
-            acceptOrders: branch.acceptOrders,
-            deliveryFee: Number(branch.deliveryFee),
-            commission: Number(branch.commission ?? 0),  // basis points: 1500 = 15%
-            deliveryRadiusKm: Number(branch.deliveryRadius)
-        };
+        return toInternalSnapshot(branch);
     }
 
+    // many branches in ONE query (GET /api/internal/branches?ids=1,2,3); unknown ids are left out
+    findManyByIds = async (branchIds: number[]) => {
+        const branches = await findBranchesByIds(branchIds);
+        return branches.map(toInternalSnapshot);
+    }
+
+}
+
+// what order-service caches per branch (single and batch endpoints return the same shape).
+// pg returns BIGINT and DECIMAL columns as strings -> converted to numbers here
+function toInternalSnapshot(branch: Branch) {
+    return {
+        id: Number(branch.id),
+        restaurantId: Number(branch.restaurantId),
+        countryCode: branch.countryCode,
+        currency: branch.currency,
+        lat: Number(branch.lat),
+        lng: Number(branch.long),
+        isActive: branch.isActive,
+        acceptOrders: branch.acceptOrders,
+        deliveryFee: Number(branch.deliveryFee),
+        commission: Number(branch.commission ?? 0),  // basis points: 1500 = 15%
+        deliveryRadiusKm: Number(branch.deliveryRadius)
+    };
 }

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsBoolean,IsOptional, IsEnum, Min, IsInt, IsArray, ArrayNotEmpty, ArrayMaxSize, ValidateNested, MaxLength} from "class-validator";
+import { IsString, IsNotEmpty, IsNumber, IsBoolean,IsOptional, IsEnum, Min, IsInt, IsArray, ArrayNotEmpty, ArrayMaxSize, ArrayMinSize, ValidateNested, MaxLength} from "class-validator";
 import { Type } from "class-transformer";
 
 
@@ -96,4 +96,25 @@ export class ReleaseStockDTO {
     @IsNotEmpty()
     @MaxLength(64)
     orderPublicId!: string;
+}
+
+export class ReleaseStockOrderDTO {
+    @IsInt()
+    @Min(1)
+    branchId!: number;
+
+    @IsString()
+    @IsNotEmpty()
+    @MaxLength(64)
+    orderPublicId!: string;
+}
+
+// POST /api/internal/stock/release — many orders in one call (order-service batch cancels)
+export class ReleaseStockBatchDTO {
+    @IsArray()
+    @ArrayMinSize(1)
+    @ArrayMaxSize(100)
+    @ValidateNested({each: true})
+    @Type(() => ReleaseStockOrderDTO)
+    orders!: ReleaseStockOrderDTO[];
 }

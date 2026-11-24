@@ -17,10 +17,10 @@ routes.use(healthRouter);
 // route can't be exposed by forgetting the guard on it.
 routes.use("/internal",
     requireInternalApiKey,
-    branchInternalRouter,      // GET  /branches/:id
-    restaurantInternalRouter,  // GET  /restaurants/:id
+    branchInternalRouter,      // GET  /branches/:id, /branches?ids= (batch)
+    restaurantInternalRouter,  // GET  /restaurants/:id, /restaurants?ids= (batch)
     addressInternalRouter,     // GET  /customers/:userId/addresses/:id
-    productInternalRouter,     // POST /branches/:id/products/batch, /branches/:id/stock/reserve, /branches/:id/stock/release
+    productInternalRouter,     // POST /branches/:id/products/batch, /branches/:id/stock/reserve, /branches/:id/stock/release, /stock/release (batch)
     memberInternalRouter,      // GET  /roles/:roleName/permissions
     userInternalRouter         // GET  /users?ids=1,2,3
 );

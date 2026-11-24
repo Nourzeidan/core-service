@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsNumber, IsBoolean,IsOptional, IsEnum, Min, IsInt} from "class-validator";
+import { IsString, IsNotEmpty, IsNumber, IsBoolean,IsOptional, IsEnum, Min, Max, IsInt} from "class-validator";
 import { Currency } from "../enums.js";
 
 export class CreateBranchDTO {
@@ -115,4 +115,12 @@ export class UpdateBranchDTO {
 export class UpdateBranchStatusDTO {
     @IsBoolean()
     isActive!: boolean;
+}
+// admin only: the platform's cut of each order's subtotal, in basis points (1500 = 15%).
+// order-service reads it at settlement (commission = floor(subtotal * bps / 10000))
+export class UpdateBranchCommissionDTO {
+    @IsInt()
+    @Min(0)
+    @Max(10000)
+    commissionBps!: number;
 }

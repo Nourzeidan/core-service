@@ -52,3 +52,25 @@ export async function markReservationReleased(id: number, conn: Knex = db): Prom
         .where("id", id)
         .update({ status: ReservationStatus.RELEASED, released_at: new Date() });
 }
+
+// reservations of several orders in ONE query (batch release), locked when asked
+export async function findReservationsByOrders(orders: {orderPublicId: string; branchId: number}[], conn: Knex, forUpdate = false): Promise<StockReservation[]> {
+    if (orders.length === 0) {
+        return [];
+    }
+    const query = conn("stock_reservations")
+        .select(STOCK_RESERVATION_COLUMNS)
+        .whereIn(["order_public_id", "branch_id"], orders.map(order => [order.orderPublicId, order.branchId]));
+    const rows = forUpdate ? await query.forUpdate() : await query;
+    return rows.map(toEntity);
+}
+
+// one UPDATE for every released reservation
+export async function markReservationsReleased(ids: number[], conn: Knex): Promise<void> {
+    if (ids.length === 0) {
+        return;
+    }
+    await conn("stock_reservations")
+        .whereIn("id", ids)
+        .update({ status: ReservationStatus.RELEASED, released_at: new Date() });
+}

@@ -1,7 +1,7 @@
 import type { NextFunction , Request, Response} from "express";
 import { validateBody } from "../../../lib/validation/validate.js";
 import { ProductService } from "../service/product.service.js";
-import { BranchProductsBatchDTO, CreateProductDTO, ReleaseStockDTO, ReserveStockDTO, UpdateProductDTO } from "../dto/product.dto.js";
+import { BranchProductsBatchDTO, CreateProductDTO, ReleaseStockBatchDTO, ReleaseStockDTO, ReserveStockDTO, UpdateProductDTO } from "../dto/product.dto.js";
 import type { SystemRole } from "../../user/enums.js";
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../../../lib/di/tokens.js";
@@ -85,6 +85,17 @@ export class ProductController {
         try{
             const data = await validateBody(ReserveStockDTO, req.body);
             await this.productService.reserveStock(Number(req.params.id), data);
+            res.status(204).send();
+        }catch(err){
+            next(err);
+        }
+    }
+
+    // internal: POST /internal/stock/release { orders: [{branchId, orderPublicId}] } (batch)
+    releaseStockBatch = async(req: Request, res: Response, next: NextFunction) => {
+        try{
+            const data = await validateBody(ReleaseStockBatchDTO, req.body);
+            await this.productService.releaseStockBatch(data);
             res.status(204).send();
         }catch(err){
             next(err);

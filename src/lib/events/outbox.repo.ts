@@ -47,3 +47,19 @@ export async function markEventFailed(id: string, error: string, conn: Knex): Pr
         last_error: error.slice(0, 2000)
     });
 }
+
+// many events in ONE multi-row insert (stock changes of a whole cart / several orders)
+export async function insertOutboxEvents<T extends EventType>(inputs: InsertOutboxInput<T>[], conn: Knex): Promise<void> {
+    if (inputs.length === 0) {
+        return;
+    }
+    const now = new Date();
+    await conn("events_outbox").insert(inputs.map(input => ({
+        aggregate_type: input.aggregateType,
+        aggregate_id: String(input.aggregateId),
+        event_type: input.eventType,
+        event_id: randomUUID(),
+        payload: JSON.stringify(input.payload),
+        created_at: now
+    })));
+}

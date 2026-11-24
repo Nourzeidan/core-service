@@ -90,3 +90,29 @@ export async function updateBranchDetails(data: Partial<ProductBranchDetails>, b
     }
     return toEntity(row);
 }
+
+// many relative stock changes in ONE statement (UPDATE ... FROM VALUES): a cart of N products is one
+// query, not N. Same semantics as changeBranchStock (stock = stock + delta). Returns the rows after.
+export async function changeBranchStocks(
+    changes: {branchId: number; productId: number; delta: number}[],
+    conn: Knex
+): Promise<{branchId: number; productId: number; stock: number; isAvailable: boolean}[]> {
+    if (changes.length === 0) {
+        return [];
+    }
+    const values = changes.map(() => "(?::bigint, ?::bigint, ?::int)").join(", ");
+    const bindings = changes.flatMap(change => [change.branchId, change.productId, change.delta]);
+    const result = await conn.raw(`
+        UPDATE product_branch_details AS b
+        SET stock = b.stock + v.delta, updated_at = NOW()
+        FROM (VALUES ${values}) AS v(branch_id, product_id, delta)
+        WHERE b.branch_id = v.branch_id AND b.product_id = v.product_id
+        RETURNING b.branch_id, b.product_id, b.stock, b.is_available
+    `, bindings);
+    return result.rows.map((row: any) => ({
+        branchId: Number(row.branch_id),
+        productId: Number(row.product_id),
+        stock: Number(row.stock),
+        isAvailable: Boolean(row.is_available)
+    }));
+}
