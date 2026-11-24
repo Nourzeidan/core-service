@@ -10,11 +10,15 @@ const config: Knex.Config = {
         password: env.db.password,
         database: env.db.name,
     },
-    // pool: {
-    //     max: env.db.poolMax || 10,
-    //     min: env.db.poolMin || 2,
-    //     idleTimeoutMillis: env.db.poolIdleTimeoutMillis || 30000,
-    // },
+    // Each process (API, worker) keeps at most `max` connections; requests beyond that wait for a free
+    // one instead of opening more. Size it so (API instances + workers) x max stays below Postgres'
+    // max_connections (100 by default). min 0: idle connections are closed after idleTimeoutMillis,
+    // so a quiet process doesn't hold connections it doesn't use (knex's own default min is 2).
+    pool: {
+        min: env.db.poolMin,
+        max: env.db.poolMax,
+        idleTimeoutMillis: env.db.poolIdleTimeoutMillis,
+    },
     migrations: {
         directory: env.db.migrationDir,
         extension: env.db.migrationExtension

@@ -19,6 +19,7 @@ import type { IEmailProvider } from "../../../pkg/email/email.interface.js";
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../../../lib/di/tokens.js";
 import { memberInvitationEmail } from "../templates/member-invitation.js";
+import { logger } from "../../../lib/logger/logger.js";
 @injectable()
 export class MemberService {
     constructor(@inject(TOKENS.UserService) private readonly userService: UserService,
@@ -83,7 +84,7 @@ export class MemberService {
 
             const emailContent = memberInvitationEmail(otp, data.role);
             await this.emailProvider.send(data.email, emailContent.subject, emailContent.html);
-            console.log(`email sent ${otp}`);
+            logger.info("member invitation email sent", {userId: user.id, restaurantId});
 
             await trx.commit();
         }catch(err){

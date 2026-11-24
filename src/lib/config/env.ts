@@ -14,6 +14,10 @@ const envSchema = z.object({
   DB_NAME: z.string().default("postgres"),
   DB_MIGRATION_DIR: z.string(),
   DB_MIGRATION_EXTENSION: z.string(),
+  // connection pool per process (API and worker each have one)
+  DB_POOL_MIN: z.string().default("0"),
+  DB_POOL_MAX: z.string().default("10"),
+  DB_POOL_IDLE_TIMEOUT_MS: z.string().default("30000"),
   ACCESS_SECRET: z.string(),
   REFRESH_SECRET: z.string(),
   ACCESS_EXPIRES_IN: z.string(),
@@ -39,7 +43,10 @@ const envSchema = z.object({
   // croner pattern with seconds: "* * * * * *" = drain the outbox every second
   OUTBOX_DRAIN_CRON: z.string().default("* * * * * *"),
   // max outbox rows published per drain pass
-  OUTBOX_BATCH_SIZE: z.string().default("50")
+  OUTBOX_BATCH_SIZE: z.string().default("50"),
+  // outbox cleanup (worker): delete rows PUBLISHED more than OUTBOX_RETENTION_DAYS ago
+  OUTBOX_CLEANUP_CRON: z.string().default("0 0 3 * * *"),      // every day at 03:00
+  OUTBOX_RETENTION_DAYS: z.string().default("7")
 });
 
 const parsed = envSchema.parse(process.env);
@@ -57,6 +64,9 @@ export const env = {
         name: parsed.DB_NAME,
         migrationDir: path.resolve(import.meta.dirname, "../../../", parsed.DB_MIGRATION_DIR),
         migrationExtension: parsed.DB_MIGRATION_EXTENSION,
+        poolMin: Number(parsed.DB_POOL_MIN),
+        poolMax: Number(parsed.DB_POOL_MAX),
+        poolIdleTimeoutMillis: Number(parsed.DB_POOL_IDLE_TIMEOUT_MS),
         nodeEnvironment: parsed.NODE_ENV
         // poolMax: Number(parsed.POOL_MAX),
         // poolMin: Number(parsed.POOL_MIN),
@@ -94,5 +104,7 @@ export const env = {
         exchange: parsed.RABBITMQ_CORE_EVENTS_EXCHANGE,
         drainCron: parsed.OUTBOX_DRAIN_CRON,
         batchSize: Number(parsed.OUTBOX_BATCH_SIZE),
+        cleanupCron: parsed.OUTBOX_CLEANUP_CRON,
+        retentionDays: Number(parsed.OUTBOX_RETENTION_DAYS),
     }
 }

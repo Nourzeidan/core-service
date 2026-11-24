@@ -43,7 +43,7 @@ export async function createRestaurant(data: Partial<Restaurant>, conn:Knex = db
         .insert({
             owner_id: data.ownerId,
             name: data.name,
-            logo_url: data.logoURL,
+            logo_url: data.logoURL ?? null,
             status: data.status,
             primary_country: data.primaryCountry,
             created_at: data.createdAt ?? new Date(),
@@ -67,7 +67,6 @@ export async function updateRestaurant(data: Partial<Restaurant>, id: number): P
     })
     .where("id", id)
     .returning(RESTAURANT_COLUMNS);
-    console.log('UPDATE RESULT:', row); console.log('DB CONFIG:', await db.raw('SELECT current_database(), inet_server_addr(), inet_server_port()')); 
     return toEntity(row);
 
 }  
@@ -91,7 +90,6 @@ export async function findRestaurantById(id: number): Promise<Restaurant | null>
     if(!row){
         return null;
     }
-    console.log(row);
     return toEntity(row);
 }
 

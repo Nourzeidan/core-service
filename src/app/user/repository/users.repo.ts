@@ -36,7 +36,6 @@ export async function findUserByEmail(email: string): Promise<User | null> {
     if (!user) {
         return null;
     }
-    console.log(user);
     return user? toEntity(user) : null;
 }
 
@@ -60,7 +59,6 @@ export async function findExistingUserByEmailOrPhone(email: string, phone: strin
         SELECT EXISTS (SELECT 1 FROM users WHERE email = ? OR phone = ?
         AND deleted_at IS NULL) AS exists
     `, [email, phone]);
-    console.log(user);
     // return user ? toEntity(user) : null;
     return user.rows[0].exists;
 }
@@ -70,7 +68,6 @@ export async function findExistingUserByEmail(email: string): Promise<User | nul
         SELECT EXISTS (SELECT 1 FROM users WHERE email = ?
         AND deleted_at IS NULL) AS exists
     `, [email]);
-    console.log(user);
     // return user ? toEntity(user) : null;
     return user.rows[0].exists;
 }
@@ -89,7 +86,6 @@ export async function findUserById(id: number): Promise<User | null> {
     if (!user) {
         return null;
     }
-    console.log(user);
     return user? toEntity(user) : null;
 }
 

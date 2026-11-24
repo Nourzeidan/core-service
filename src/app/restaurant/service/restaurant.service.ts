@@ -152,7 +152,7 @@ export class RestaurantService {
             const restaurant = await createRestaurant({
                 ownerId: owner.id,
                 name: data.name,
-                logoURL: data.logoURL ?? "",   // logo_url is NOT NULL in the table
+                logoURL: data.logoURL ?? null,
                 primaryCountry: data.primaryCountry,
                 status: RestaurantStatus.ACTIVE,
                 createdAt: now,

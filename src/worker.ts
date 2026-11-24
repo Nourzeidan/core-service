@@ -5,6 +5,7 @@ import {logger} from "./lib/logger/logger.js";
 import {db} from "./lib/knex/knex.js";
 import {messageBroker} from "./lib/events/init.js";
 import {drainOutbox} from "./lib/events/outbox-drain.js";
+import {cleanupOutbox} from "./lib/events/outbox-cleanup.js";
 
 // Outbox worker: a SEPARATE process from the http server (npm run worker:dev / npm run worker).
 // The API only writes rows into events_outbox; this process publishes them to RabbitMQ.
@@ -19,6 +20,16 @@ const job = new Cron(env.rabbit.drainCron, {protect: true}, async () => {
     }
 });
 logger.info("worker: outbox drain scheduled", {pattern: env.rabbit.drainCron, batchSize: env.rabbit.batchSize});
+
+// daily: delete events published more than OUTBOX_RETENTION_DAYS ago (pending ones are never touched)
+const cleanupJob = new Cron(env.rabbit.cleanupCron, {protect: true}, async () => {
+    try{
+        await cleanupOutbox();
+    }catch(err){
+        logger.error("outbox cleanup error", {error: (err as Error).message});
+    }
+});
+logger.info("worker: outbox cleanup scheduled", {pattern: env.rabbit.cleanupCron, retentionDays: env.rabbit.retentionDays});
 
 // create the exchange up front so it exists even before the first event
 messageBroker.declareExchange(env.rabbit.exchange)
@@ -36,6 +47,7 @@ async function shutdown() {
     setTimeout(() => process.exit(1), 10_000).unref();
 
     job.stop();
+    cleanupJob.stop();
     await messageBroker.close();
     await db.destroy();
     process.exit(0);

@@ -218,12 +218,25 @@ Envelope (what order-service's consumer parses):
 - **Not tested:** a real publish to RabbitMQ (no broker was running on localhost:5672), and the
   branch endpoints / reserve (they need `npm run migrate` first).
 
-## 9. Noticed but NOT changed (your call)
+## 9. Noticed while integrating — all fixed 2026-11-24
 
-- OTPs are logged in plain text (`auth.service.ts` forgetPassword, `member.service.ts`), and many debug
-  `console.log`s print users/rows (`users.repo.ts`, `restaurant.repo.ts`, `rest.controller.ts`).
-- `RegisterRestaurantDTO.logoURL` is optional but `restaurants.logo_url` is NOT NULL, so self-registering a
-  restaurant without a logo fails (the new admin endpoint sends `""` instead).
-- The DB pool settings are still commented out in `knexfile.ts` (the example sets `pool.max`).
-- `events_outbox` keeps dispatched rows forever. A periodic cleanup (e.g. delete dispatched rows older than 7 days) is worth adding later.
-- `npm install` reported 4 vulnerabilities (1 moderate, 2 high, 1 critical) in the dependency tree. I did not check which packages they come from; run `npm audit` to see them.
+- ✅ **Fixed 2026-11-24.** ~~OTPs are logged in plain text (`auth.service.ts` forgetPassword, `member.service.ts`), and many debug
+  `console.log`s print users/rows (`users.repo.ts`, `restaurant.repo.ts`, `rest.controller.ts`).~~
+  The two OTP lines are now `logger.info("password reset email sent", {userId})` / `("member invitation email sent", {userId, restaurantId})`
+  — the fact is logged, never the code. The 13 debug prints are removed (including one in `updateRestaurant` that ran an
+  extra `SELECT current_database(), …` query on every update). No `console.log` is left in `src/app`.
+- ✅ **Fixed 2026-11-24.** ~~`RegisterRestaurantDTO.logoURL` is optional but `restaurants.logo_url` is NOT NULL, so self-registering a   restaurant without a logo fails (the new admin endpoint sends `""` instead).~~
+  Migration `20261124100000_alter_restaurants_logo_url_nullable`: `logo_url` is nullable (a logo is optional in every DTO) and the
+  old `""` placeholders became NULL. `Restaurant.logoURL` is `string | null`; create stores NULL when no logo is sent, and the admin
+  endpoint no longer sends `""`. Verified: self-registering a restaurant without a logo → 201, row has `logo_url NULL`.
+- ✅ **Fixed 2026-11-24.** ~~The DB pool settings are still commented out in `knexfile.ts`~~ — enabled: `DB_POOL_MIN` (0), `DB_POOL_MAX` (10),
+  `DB_POOL_IDLE_TIMEOUT_MS` (30000), all optional in `env.ts`. min 0 closes idle connections; keep (API + workers) × max below
+  Postgres `max_connections`.
+- ✅ **Fixed 2026-11-24.** ~~`events_outbox` keeps dispatched rows forever.~~ The worker runs `lib/events/outbox-cleanup.ts` daily
+  (`OUTBOX_CLEANUP_CRON`, default 03:00): deletes rows PUBLISHED more than `OUTBOX_RETENTION_DAYS` (7) ago, 5000 per statement,
+  `FOR UPDATE SKIP LOCKED`. Pending rows are never deleted. New partial index `idx_events_outbox_dispatched_at` (migration
+  `20261124100100`, built CONCURRENTLY). Verified in a rolled-back trx: 30-day-old published row deleted, 30-day-old pending and
+  1-day-old published rows kept.
+- ✅ **Fixed 2026-11-24.** ~~`npm install` reported 4 vulnerabilities~~ — by now only 1 was left: `follow-redirects` 1.16.1 (high,
+  GHSA-mrwp-f3q8-3g9p: credential headers can follow a redirect), pulled in by `node-mailjet` → `axios`. `npm audit fix`
+  (no `--force`: stays inside the declared semver ranges) moved it to 1.16.3; only `package-lock.json` changed. `npm audit`: 0.

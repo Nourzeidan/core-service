@@ -48,6 +48,22 @@ export async function markEventFailed(id: string, error: string, conn: Knex): Pr
     });
 }
 
+// cleanup: delete up to `limit` rows PUBLISHED before `before` (pending rows are never touched).
+// One statement per batch: the subquery picks the oldest published ids (idx_events_outbox_dispatched_at),
+// SKIP LOCKED so two workers cleaning at the same time never wait on each other. Returns rows deleted.
+export async function deleteDispatchedEventsBefore(before: Date, limit: number, conn: Knex): Promise<number> {
+    const result = await conn.raw(`
+        DELETE FROM events_outbox WHERE id IN (
+            SELECT id FROM events_outbox
+            WHERE dispatched_at IS NOT NULL AND dispatched_at < ?
+            ORDER BY dispatched_at
+            LIMIT ?
+            FOR UPDATE SKIP LOCKED
+        )
+    `, [before, limit]);      // a Date, serialized exactly like markEventDispatched writes it
+    return result.rowCount ?? 0;
+}
+
 // many events in ONE multi-row insert (stock changes of a whole cart / several orders)
 export async function insertOutboxEvents<T extends EventType>(inputs: InsertOutboxInput<T>[], conn: Knex): Promise<void> {
     if (inputs.length === 0) {

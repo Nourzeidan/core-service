@@ -18,6 +18,7 @@ import { inject, injectable } from "tsyringe";
 import type { IEmailProvider } from "../../../pkg/email/email.interface.js";
 import { TOKENS } from "../../../lib/di/tokens.js";
 import { passwordResetTemplate } from "../templates/password-reset.js";
+import { logger } from "../../../lib/logger/logger.js";
 @injectable()
 export class AuthService {
     constructor(
@@ -64,7 +65,6 @@ export class AuthService {
                 }
                 restaurant = await this.restaurantService.create(newUser.id, dto.restaurant, trx);
                 await this.memberService.createOwnerMember(restaurant.id, newUser.id, trx);
-                console.log(newUser.id);
 
                 restaurantMemberInfo = {
                 restaurantId: restaurant.id,
@@ -157,7 +157,7 @@ export class AuthService {
 
         const content = passwordResetTemplate(otp);
         await this.emailProvider.send(dto.email, content.subject, content.html);
-        console.log(`email sent ${otp}`);
+        logger.info("password reset email sent", {userId: user.id});
     }
 
 
@@ -176,7 +176,6 @@ export class AuthService {
          if(!reset){
             throw InvalidOTPError;
         }
-        console.log(`${user.id}`);
 
         const inputOTPHash = hashOTP(dto.otp.toString())
         if(inputOTPHash !== reset.otpHash || reset.isExpired()){

@@ -16,11 +16,8 @@ export class RestaurantController {
 
     getAll = async(req:Request, res: Response, next:NextFunction) => {
         try{
-             console.log('RAW URL:', req.url);
-            console.log('PARSED QUERY:', JSON.stringify(req.query, null, 2));
             const params = parsePaginationQuery(req.query);
             const filters = parseFilters(req.query,['status', 'name']);
-            console.log(filters)
             const result = await this.restaurantService.findAll(params, filters);
             sendPaginated(res, result.data, result.meta);
             // res.status(200).json({data: result});
